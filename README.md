@@ -102,7 +102,15 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     `EphemeralAudioStore` real em arquivo (cifrado com chave efêmera por processo, sem resíduo em
     disco após `destroy`) e o `CapturePipeline` que liga `chunking → VAD → store` e emite os chunks
     prontos para a fila. Todos testados.
+  - ✅ **Pipeline ponta-a-ponta provado** por teste de integração: PCM cru → `CapturePipeline` →
+    store efêmero → `TranscriptionQueue` → `RoomSegmentSink` → banco, com o áudio destruído só após
+    o texto persistir.
   - ⏭️ Captura real (`AudioRecord` + Foreground Service), whisper.cpp (JNI), fluxo de unlock/onboarding.
+
+O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
+(fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX) e a fonte de PCM
+(`CapturePipeline.onAudio` ← `AudioRecord`). O miolo — fila, efemeridade, persistência, segurança —
+já está testado.
 
 Plano de engenharia completo em [`docs/plano-de-desenvolvimento.md`](docs/plano-de-desenvolvimento.md).
 O protótipo navegável de UI está em [`index.html`](index.html).
