@@ -98,9 +98,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:security`: derivação de chave PIN→chave (PBKDF2, sem persistir a chave), verificação
     de PIN, store cifrado por Keystore e auto-lock — testados; DI via `SecurityModule` (Hilt).
   - ✅ Seam DB cifrado (`buildEncryptedDatabase`, SQLCipher) ligando a chave derivada ao banco.
-  - ✅ `:core:audio`: `PcmChunker` (chunking 30–60s), `EnergyVad` (baseline até o Silero/ONNX) e o
-    `EphemeralAudioStore` real em arquivo — cifrado com chave efêmera por processo, com prova de
-    ausência de resíduo em disco após `destroy`. Todos testados.
+  - ✅ `:core:audio`: `PcmChunker` (chunking 30–60s), `EnergyVad` (baseline até o Silero/ONNX), o
+    `EphemeralAudioStore` real em arquivo (cifrado com chave efêmera por processo, sem resíduo em
+    disco após `destroy`) e o `CapturePipeline` que liga `chunking → VAD → store` e emite os chunks
+    prontos para a fila. Todos testados.
   - ⏭️ Captura real (`AudioRecord` + Foreground Service), whisper.cpp (JNI), fluxo de unlock/onboarding.
 
 Plano de engenharia completo em [`docs/plano-de-desenvolvimento.md`](docs/plano-de-desenvolvimento.md).

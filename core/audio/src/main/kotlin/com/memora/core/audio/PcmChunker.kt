@@ -9,7 +9,7 @@ package com.memora.core.audio
  * periódico). Lógica pura e determinística — não conhece tempo, id nem storage: o serviço embrulha
  * cada `ShortArray` num `AudioChunk` (id + `startedAt`) e o entrega ao `EphemeralAudioStore`.
  */
-class PcmChunker(private val sampleRate: Int, targetMs: Long) {
+class PcmChunker(val sampleRate: Int, targetMs: Long) {
 
     /** Amostras por chunk = sampleRate × (targetMs / 1000). */
     val samplesPerChunk: Int = ((sampleRate.toLong() * targetMs) / 1000L).toInt()
