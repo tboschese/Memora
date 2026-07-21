@@ -1,0 +1,54 @@
+package com.memora.core.db.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Upsert
+import com.memora.core.db.entity.SegmentEntity
+import com.memora.core.db.entity.SessionEntity
+import com.memora.core.db.entity.TimelineGapEntity
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * DAOs do banco local. Consultas por dia usam um intervalo `[fromMs, toMs)` em epoch-millis,
+ * calculado na camada de cima (fuso do usuário) — o banco não conhece timezone.
+ *
+ * ⚠️ Gerado pelo Room (KSP); não compilado no ambiente atual.
+ */
+@Dao
+interface SessionDao {
+    @Upsert
+    suspend fun upsert(session: SessionEntity)
+
+    @Query("SELECT * FROM session WHERE startedAtMs >= :fromMs AND startedAtMs < :toMs ORDER BY startedAtMs")
+    fun observeInRange(fromMs: Long, toMs: Long): Flow<List<SessionEntity>>
+
+    @Query("SELECT * FROM session WHERE id = :id")
+    suspend fun byId(id: String): SessionEntity?
+}
+
+@Dao
+interface SegmentDao {
+    /** Insere os segmentos de um chunk transcrito. Idempotente por id (REPLACE). */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(segments: List<SegmentEntity>)
+
+    @Query("SELECT * FROM segment WHERE startMs >= :fromMs AND startMs < :toMs ORDER BY startMs")
+    fun observeInRange(fromMs: Long, toMs: Long): Flow<List<SegmentEntity>>
+
+    @Query("UPDATE segment SET speaker = :speaker WHERE id = :segmentId")
+    suspend fun setSpeaker(segmentId: String, speaker: String)
+
+    @Query("SELECT COUNT(*) FROM segment WHERE chunkId = :chunkId")
+    suspend fun countForChunk(chunkId: String): Int
+}
+
+@Dao
+interface TimelineGapDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(gap: TimelineGapEntity)
+
+    @Query("SELECT * FROM timeline_gap WHERE fromMs >= :fromMs AND fromMs < :toMs ORDER BY fromMs")
+    fun observeInRange(fromMs: Long, toMs: Long): Flow<List<TimelineGapEntity>>
+}

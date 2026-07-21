@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memora — Protótipo</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: linear-gradient(180deg, #E9EFEC, #DCE4E0);
+    font-family: Roboto, system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  a { color: #006A60; }
+  a:hover { color: #00504A; }
+  .msi {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal; font-style: normal; line-height: 1;
+    letter-spacing: normal; text-transform: none; display: inline-block;
+    white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  input, textarea { font-family: Roboto, system-ui, sans-serif; }
+  /* hover / active feedback */
+  .hv { transition: background .12s; }
+  .hv:hover { background: var(--hb) !important; }
+  .ac:active { background: var(--ha) !important; }
+
+  @keyframes mem-pulse { 0%{box-shadow:0 0 0 0 rgba(186,26,26,0.45);} 70%{box-shadow:0 0 0 9px rgba(186,26,26,0);} 100%{box-shadow:0 0 0 0 rgba(186,26,26,0);} }
+  @keyframes mem-slideup { from{transform:translateY(40px);opacity:0.4;} to{transform:translateY(0);opacity:1;} }
+  @keyframes mem-shade { from{transform:translateY(-30px);opacity:0.4;} to{transform:translateY(0);opacity:1;} }
+  @keyframes mem-toast { from{transform:translateY(12px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+  @keyframes mem-spin { to{transform:rotate(360deg);} }
+
+  /* ---- Android device frame ---- */
+  .device {
+    position: relative;
+    width: 428px; height: 908px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    background: #0B1210;
+    border-radius: 54px;
+    padding: 13px;
+    box-shadow: 0 30px 70px rgba(10,20,18,0.42), 0 4px 14px rgba(10,20,18,0.3);
+  }
+  .device-screen {
+    position: relative;
+    width: 100%; height: 100%;
+    background: #F6FAF8;
+    border-radius: 42px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  /* scale the whole frame down on short screens */
+  @media (max-height: 940px) {
+    .device { transform: scale(calc((100vh - 24px) / 908)); transform-origin: center; }
+  }
+  .statusbar {
+    height: 34px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; font-size: 13px; font-weight: 500; color: #171D1B;
+    background: transparent; z-index: 5;
+  }
+  .statusbar .right { display: flex; align-items: center; gap: 5px; }
+  .statusbar .msi { font-size: 17px; color: #171D1B; }
+  .app-root { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .gesturebar {
+    height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .gesturebar > div { width: 132px; height: 5px; border-radius: 3px; background: #171D1B; opacity: .32; }
+  .app-scroll::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="device-screen">
+      <div class="statusbar">
+        <span id="clock">15:42</span>
+        <div class="right">
+          <span class="msi">signal_cellular_alt</span>
+          <span class="msi">wifi</span>
+          <span class="msi">battery_full</span>
+        </div>
+      </div>
+      <div class="app-root" id="app"></div>
+      <div class="gesturebar"><div></div></div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Tiny render runtime — replaces the proprietary x-dc/support.js.
+   State object + full re-render + event delegation via handler ids.
+   ============================================================ */
+let HANDLERS = [];
+function bind(fn) { HANDLERS.push(fn); return HANDLERS.length - 1; }
+
+const UNITLESS = { fontWeight:1, flexShrink:1, flex:1, zIndex:1, opacity:1, lineHeight:1, order:1 };
+function kebab(k){ return k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()); }
+function css(obj){
+  if (!obj) return '';
+  let out = '';
+  for (const k in obj) {
+    let v = obj[k];
+    if (typeof v === 'number' && !UNITLESS[k]) v = v + 'px';
+    out += kebab(k) + ':' + v + ';';
+  }
+  return out;
+}
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* click handler attr */
+function on(fn){ return fn ? `data-h="${bind(fn)}"` : ''; }
+/* hover helper: returns class+style fragment. */
+function hov(bg, active){
+  let c = 'hv', s = `--hb:${bg}`;
+  if (active){ c += ' ac'; s += `;--ha:${active}`; }
+  return { cls: c, var: s };
+}
+
+/* ============================================================
+   Component
+   ============================================================ */
+const App = {
+  state: {
+    locked: true,
+    pin: '', screen: 'hoje',
+    recState: 'rec',                 // 'rec' | 'paused'
+    showNoteSheet: false, noteText: '', noteTag: '#reunião',
+    showShade: false, blindMode: false, blindText: '', blindSaved: false,
+    toast: null,
+    digestReady: false, digestLoading: false, digestProg: 0,
+    q: '', tags: [],
+    enrollStep: 1, enrollSec: 0,
+    toggles: { bio: true, lote: true, auto: true },
+    added: [],
+    calMonth: 1, selDay: '2026-07-19',
+    showGlossSheet: false, gTerm: '', gVar: '', gDesc: '',
+    gloss: [
+      { term: 'SIGO', variants: 'cigo, sigô, si go', desc: 'Sistema legado da empresa — fila de exportação do catálogo' },
+      { term: 'Renata Albuquerque', variants: 'renata alburquerque, renata albuquerqui', desc: 'Minha gestora' },
+      { term: 'catálogo v1', variants: 'catálogo verão um', desc: 'Projeto atual — corte de escopo em discussão' },
+      { term: 'SKU', variants: 'êsse cá u, eskiu', desc: 'Código de item do catálogo' },
+      { term: 'PARA', variants: 'pára, para método', desc: 'Método de organização (Projects / Areas / Resources / Archive)' },
+      { term: 'Obsidian', variants: 'obisidian, o cidian', desc: 'Destino dos exports em Markdown' },
+    ],
+  },
+  _tt: null, _di: null, _ei: null,
+
+  setState(patch){
+    if (typeof patch === 'function') patch = patch(this.state);
+    Object.assign(this.state, patch);
+    render();
+  },
+
+  _toast(msg){
+    clearTimeout(this._tt);
+    this.setState({ toast: msg });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 2400);
+  },
+  _unlock(){ this.setState({ locked: false, pin: '' }); },
+  _tapKey(k){
+    if (k.id === 'bio'){ this._unlock(); return; }
+    if (k.id === 'back'){ this.setState(s => ({ pin: s.pin.slice(0, -1) })); return; }
+    this.setState(s => {
+      const pin = (s.pin + k.label).slice(0, 4);
+      if (pin.length === 4) setTimeout(() => this._unlock(), 220);
+      return { pin };
+    });
+  },
+  _genDigest(){
+    if (this.state.digestReady){ this.setState({ screen: 'digest' }); return; }
+    if (this.state.digestLoading){ this.setState({ screen: 'digest' }); return; }
+    this.setState({ screen: 'digest', digestLoading: true, digestProg: 0 });
+    this._di = setInterval(() => this.setState(s => {
+      const p = s.digestProg + 3.2;
+      if (p >= 100){ clearInterval(this._di); return { digestProg: 100, digestLoading: false, digestReady: true }; }
+      return { digestProg: p };
+    }), 80);
+  },
+  _beginReading(){
+    this.setState({ enrollStep: 2, enrollSec: 0 });
+    this._ei = setInterval(() => this.setState(s => {
+      const v = s.enrollSec + 2.4;
+      if (v >= 120){ clearInterval(this._ei); return { enrollSec: 120, enrollStep: 3 }; }
+      return { enrollSec: v };
+    }), 100);
+  },
+  _saveNote(){
+    const t = this.state.noteText.trim();
+    if (!t){ this._toast('Escreva a anotação antes de salvar'); return; }
+    this.setState(s => ({
+      added: [...s.added, { k: 'note', time: '15:42', tag: s.noteTag, text: t }],
+      showNoteSheet: false, noteText: '',
+    }));
+    this._toast('Anotação ancorada às 15:42');
+  },
+  _saveBlind(){
+    const t = this.state.blindText.trim();
+    if (!t) return;
+    this.setState(s => ({
+      added: [...s.added, { k: 'note', time: '15:42', tag: '#nota', text: t }],
+      blindMode: false, blindText: '', blindSaved: true,
+    }));
+  },
+  _mkToggle(key){
+    const on = this.state.toggles[key];
+    return {
+      onTap: () => this.setState(s => ({ toggles: { ...s.toggles, [key]: !s.toggles[key] } })),
+      trackStyle: { width:46, height:26, borderRadius:13, background: on?'#006A60':'#DCE4E0', border: on?'1px solid #006A60':'1px solid #A8B3AF', position:'relative', cursor:'pointer', transition:'background .15s', flexShrink:0, boxSizing:'border-box' },
+      knobStyle: { position:'absolute', top: on?3:5, left: on?23:5, width: on?18:14, height: on?18:14, borderRadius:'50%', background: on?'#ffffff':'#6F7976', transition:'all .15s' },
+    };
+  },
+
+  renderVals(){
+    const self = this, S = this.state;
+    const speakerMeta = {
+      SELF:    { label:'Eu',                bg:'#CDE8E1', color:'#00201C', border:'1px solid transparent' },
+      OTHER:   { label:'Outros',            bg:'#E7EBE8', color:'#3F4946', border:'1px solid transparent' },
+      UNKNOWN: { label:'Não identificado',  bg:'transparent', color:'#6F7976', border:'1px dashed #A8B3AF' },
+    };
+    const base = [
+      { k:'place', time:'07:58', name:'Sessão iniciada · Casa', icon:'play_circle' },
+      { k:'seg', time:'08:03', sp:'SELF', text:'Não esquecer de revisar o orçamento do catálogo antes do standup… e responder a Renata Albuquerque sobre a proposta.' },
+      { k:'place', time:'09:02', name:'Escritório', icon:'location_on' },
+      { k:'note', time:'09:15', tag:'#reunião', text:'Standup sprint 14 — foco no corte do catálogo v1' },
+      { k:'seg', time:'09:16', sp:'OTHER', text:'A migração do SIGO travou de novo na fila de exportação. Sem o schema revisado a gente não fecha a sprint.' },
+      { k:'seg', time:'09:18', sp:'SELF', text:'Pode deixar comigo — eu reviso o schema do SIGO hoje e mando pro time até o fim do dia.' },
+      { k:'seg', time:'09:31', sp:'UNKNOWN', text:'…se o fornecedor confirmar até quinta, dá pra segurar o cronograma sem cortar o bundle.' },
+      { k:'note', time:'11:47', tag:'#tarefa', text:'Mandar a proposta do catálogo pra Renata até amanhã cedo' },
+      { k:'gap', range:'12:31–12:43', reason:'microfone em uso por outro app (ligação)' },
+      { k:'note', time:'13:05', tag:'#ideia', text:'Usar o glossário pra corrigir nomes de produto também na busca, não só na transcrição' },
+      { k:'place', time:'14:12', name:'Casa', icon:'location_on' },
+      { k:'seg', time:'14:30', sp:'OTHER', text:'We can ship catalog v1 without bundle pricing, but I need the SKU mapping first — can you send it today?' },
+      { k:'seg', time:'14:33', sp:'SELF', text:'Fechado, eu mando o mapping de SKUs ainda hoje. Bundle fica pra v1.1.' },
+      { k:'note', time:'15:20', tag:'#pessoal', text:'Ligar pro dentista e remarcar a consulta de quinta' },
+    ];
+    const timeline = [...base, ...S.added].map(it => {
+      const m = it.sp ? speakerMeta[it.sp] : null;
+      return {
+        ...it,
+        isSeg: it.k==='seg', isNote: it.k==='note', isPlace: it.k==='place', isGap: it.k==='gap',
+        speaker: m ? m.label : '',
+        chipStyle: m ? { display:'inline-flex', padding:'2px 10px', borderRadius:8, fontSize:11, fontWeight:500, background:m.bg, color:m.color, border:m.border } : null,
+      };
+    });
+    const keypad = ['1','2','3','4','5','6','7','8','9'].map(d => ({ label:d, icon:'', onTap:()=>self._tapKey({ label:d }) }))
+      .concat([
+        { label:'', icon:'fingerprint', onTap:()=>self._tapKey({ id:'bio' }) },
+        { label:'0', icon:'', onTap:()=>self._tapKey({ label:'0' }) },
+        { label:'', icon:'backspace', onTap:()=>self._tapKey({ id:'back' }) },
+      ]);
+    const pinDots = [0,1,2,3].map(i => ({ style: { width:14, height:14, borderRadius:'50%', background: i < S.pin.length ? '#006A60':'#C3CFCA', transition:'background .12s' } }));
+    const navDefs = [
+      { id:'hoje', icon:'today', label:'Hoje' },
+      { id:'digest', icon:'summarize', label:'Digest' },
+      { id:'buscar', icon:'search', label:'Buscar' },
+      { id:'ajustes', icon:'settings', label:'Ajustes' },
+    ];
+    const navItems = navDefs.map(n => {
+      const active = S.screen === n.id;
+      return {
+        ...n,
+        onTap: () => self.setState({ screen:n.id }),
+        pillStyle: { width:58, height:30, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', background: active?'#CDE8E1':'transparent', transition:'background .15s' },
+        iconStyle: { fontFamily:"'Material Symbols Outlined'", fontSize:22, fontVariationSettings: active?"'FILL' 1":"'FILL' 0", color: active?'#00201C':'#3F4946' },
+        labelStyle: { fontSize:11.5, fontWeight: active?700:500, color: active?'#171D1B':'#3F4946' },
+      };
+    });
+    const tagList = ['#reunião','#ideia','#tarefa','#pessoal'];
+    const chipStyle = sel => ({ fontSize:13, fontWeight:500, color: sel?'#00201C':'#3F4946', background: sel?'#CDE8E1':'transparent', border: sel?'1px solid transparent':'1px solid #BEC9C5', borderRadius:16, padding:'6px 14px', cursor:'pointer', transition:'background .12s' });
+    const tagChips = tagList.map(t => ({
+      label:t, style: chipStyle(S.tags.includes(t)),
+      onTap: () => self.setState(s => ({ tags: s.tags.includes(t) ? s.tags.filter(x=>x!==t) : [...s.tags, t] })),
+    }));
+    const noteTagChips = tagList.map(t => ({
+      label:t, style: chipStyle(S.noteTag === t),
+      onTap: () => self.setState({ noteTag: t }),
+    }));
+    const corpus = [
+      ...[...base, ...S.added].filter(i => i.k==='seg' || i.k==='note').map(i => ({
+        date:'HOJE', time:i.time, kind: i.k==='note'?'anotação':'transcrição', tag: i.tag||'', text:i.text,
+      })),
+      { date:'19 JUL', time:'10:12', kind:'anotação', tag:'#ideia', text:'Grafo de tópicos ao longo do tempo — o conceito do DayLog encaixa aqui' },
+      { date:'17 JUL', time:'11:40', kind:'transcrição', tag:'', text:'O contrato do fornecedor do catálogo vence em agosto, precisa renegociar antes.' },
+      { date:'16 JUL', time:'09:05', kind:'transcrição', tag:'', text:'A fila do SIGO estoura toda vez que o export roda junto com o backup.' },
+      { date:'15 JUL', time:'16:20', kind:'anotação', tag:'#pessoal', text:'Dentista confirmou quinta às 8h — remarcar se o standup mudar' },
+    ];
+    const ql = S.q.trim().toLowerCase();
+    const searching = ql.length > 0 || S.tags.length > 0;
+    const results = searching ? corpus.filter(c =>
+      (!ql || c.text.toLowerCase().includes(ql)) && (S.tags.length===0 || S.tags.includes(c.tag))
+    ).map(c => ({
+      icon: c.kind==='anotação'?'edit_note':'mic',
+      meta: c.date + ' · ' + c.time + ' · ' + c.kind.toUpperCase(),
+      text: c.text, hasTag: !!c.tag, tag: c.tag,
+    })) : [];
+    const suggestions = ['SIGO','catálogo','fornecedor','dentista'].map(t => ({ label:t, onTap:()=>self.setState({ q:t }) }));
+    const DAYS = {
+      '2026-07-19': { title:'domingo, 19 de julho', stats:'2 sessões · 1h12 de fala · 6 anotações', dec:'Catálogo v1 tem prioridade sobre o SIGO nesta semana', temas:['planejamento','DayLog','catálogo v1'], blocks:[
+        { range:'09:10 – 11:40', place:'Casa', title:'Planejamento da semana', summary:'Semana priorizada: catálogo v1 acima da migração do SIGO. Mercado e lista de compras no fim da manhã.' },
+        { range:'15:00 – 16:20', place:'Casa', title:'Ideias — grafo de tópicos', summary:'Esboço do grafo de tópicos ao longo do tempo; o conceito do DayLog encaixa como visualização do histórico.' },
+      ]},
+      '2026-07-18': { title:'sábado, 18 de julho', stats:'2 sessões · 44 min de fala · 14 anotações', dec:null, temas:['churrasco','viagem de setembro','família'], blocks:[
+        { range:'12:30 – 17:10', place:'Casa do Pedro', title:'Churrasco', summary:'Conversa sobre a viagem de setembro e a reforma do Pedro. Muitas anotações rápidas — datas e lugares citados.' },
+      ]},
+      '2026-07-17': { title:'sexta-feira, 17 de julho', stats:'1 sessão · 2h05 de fala · 4 anotações', dec:'Renegociar o contrato do fornecedor antes de agosto', temas:['sprint 13','fornecedor','contrato'], blocks:[
+        { range:'09:00 – 12:00', place:'Escritório', title:'Review da sprint 13', summary:'Entregas fechadas com atraso na fila de exportação. Alerta: o contrato do fornecedor do catálogo vence em agosto.' },
+      ]},
+      '2026-07-16': { title:'quinta-feira, 16 de julho', stats:'1 sessão · 1h38 de fala · 3 anotações', dec:'Mover a janela de backup para 2h da manhã', temas:['SIGO','backup','infra'], blocks:[
+        { range:'10:20 – 11:50', place:'Escritório', title:'Incidente — fila do SIGO', summary:'A fila do SIGO estoura sempre que o export roda junto com o backup. Causa raiz identificada com a infra.' },
+      ]},
+      '2026-07-15': { title:'quarta-feira, 15 de julho', stats:'2 sessões · 1h51 de fala · 5 anotações', dec:null, temas:['1:1','proposta','pessoal'], blocks:[
+        { range:'14:00 – 14:45', place:'Escritório', title:'1:1 com Renata', summary:'Feedback sobre a proposta do catálogo: falta o cenário de custo sem o bundle. Dentista confirmado para quinta às 8h.' },
+      ]},
+      '2026-07-14': { title:'terça-feira, 14 de julho', stats:'1 sessão · 2h20 de fala · 7 anotações', dec:'Corte inicial do catálogo v1 definido no kickoff', temas:['sprint 14','kickoff','catálogo v1'], blocks:[
+        { range:'09:30 – 12:10', place:'Escritório', title:'Kickoff da sprint 14', summary:'Definição do corte inicial do catálogo v1; bundle pricing entrou como risco desde o primeiro dia.' },
+      ]},
+      '2026-07-13': { title:'segunda-feira, 13 de julho', stats:'1 sessão · 58 min de fala · 2 anotações', dec:null, temas:['foco','proposta'], blocks:[
+        { range:'08:40 – 12:00', place:'Casa', title:'Dia de foco — proposta', summary:'Escrita da primeira versão da proposta do catálogo, pouca fala capturada (trabalho silencioso).' },
+      ]},
+    };
+    const months = [
+      { name:'junho de 2026', days:30, lead:1, prefix:'2026-06-' },
+      { name:'julho de 2026', days:31, lead:3, prefix:'2026-07-' },
+    ];
+    const cm = months[S.calMonth];
+    const calCells = [];
+    for (let i = 0; i < cm.lead; i++) calCells.push({ label:'', hasDot:false, cellStyle:{ height:50 }, numStyle:{}, onTap:undefined });
+    for (let d = 1; d <= cm.days; d++){
+      const key = cm.prefix + String(d).padStart(2, '0');
+      const isToday = key === '2026-07-20';
+      const isFuture = S.calMonth === 1 && d > 20;
+      const has = !!DAYS[key];
+      const tappable = has || isToday || !isFuture;
+      calCells.push({
+        label: String(d), hasDot: has,
+        cellStyle: { height:50, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor: tappable?'pointer':'default' },
+        numStyle: { width:36, height:36, borderRadius:18, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14,
+          fontWeight: isToday?700: has?500:400,
+          color: isToday?'#ffffff': isFuture?'#C3CFCA': has?'#171D1B':'#6F7976',
+          background: isToday?'#006A60':'transparent' },
+        onTap: isToday ? () => self.setState({ screen:'digest' })
+          : has ? () => self.setState({ screen:'diaResumo', selDay:key })
+          : isFuture ? undefined : () => self._toast('Sem sessões neste dia'),
+      });
+    }
+    const navIcon = en => ({ fontFamily:"'Material Symbols Outlined'", fontSize:24, color: en?'#171D1B':'#C3CFCA' });
+    const dia = DAYS[S.selDay] || DAYS['2026-07-19'];
+    const isRec = S.recState === 'rec';
+    const mainIds = ['hoje','digest','buscar','ajustes'];
+    const clock = sec => Math.floor(sec/60) + ':' + String(Math.floor(sec%60)).padStart(2, '0');
+
+    return {
+      locked: S.locked, unlocked: !S.locked,
+      pinDots, keypad, lockRecNote: isRec,
+      isHoje: S.screen==='hoje', isDigest: S.screen==='digest', isBuscar: S.screen==='buscar',
+      isAjustes: S.screen==='ajustes', isGloss: S.screen==='glossario', isEnroll: S.screen==='enrollment',
+      isCal: S.screen==='calendario', isDiaResumo: S.screen==='diaResumo',
+      goCal: () => self.setState({ screen:'calendario', calMonth:1 }),
+      backDigest: () => self.setState({ screen:'digest' }),
+      backCal: () => self.setState({ screen:'calendario' }),
+      calMonthLabel: cm.name,
+      calPrev: () => { if (S.calMonth > 0) self.setState({ calMonth:S.calMonth-1 }); },
+      calNext: () => { if (S.calMonth < 1) self.setState({ calMonth:S.calMonth+1 }); },
+      calPrevIconStyle: navIcon(S.calMonth > 0),
+      calNextIconStyle: navIcon(S.calMonth < 1),
+      calCells,
+      dayTitle: dia.title, dayStats: dia.stats, dayBlocks: dia.blocks,
+      dayHasDec: !!dia.dec, dayDec: dia.dec || '', dayTemas: dia.temas,
+      exportDay: () => self._toast('Exportado: memora-' + S.selDay + '.md'),
+      openShade: () => self.setState({ showShade:true, blindMode:false, blindSaved:false }),
+      closeShade: () => self.setState({ showShade:false, blindMode:false, blindSaved:false, blindText:'' }),
+      doLock: () => self.setState({ locked:true, showShade:false, showNoteSheet:false }),
+      isRec, isPausedCard: !isRec,
+      pauseRec: () => { self.setState({ recState:'paused' }); self._toast('Gravação pausada — o intervalo vira gap'); },
+      resumeRec: () => { self.setState({ recState:'rec' }); self._toast('Gravação retomada'); },
+      barBtnTap: () => {
+        if (isRec){ self.setState({ recState:'paused' }); self._toast('Gravação pausada — o intervalo vira gap'); }
+        else { self.setState({ recState:'rec' }); self._toast('Gravação retomada'); }
+      },
+      openNote: () => self.setState({ showNoteSheet:true }),
+      closeNote: () => self.setState({ showNoteSheet:false }),
+      timeline,
+      ctaLabel: S.digestReady ? 'Ver digest' : 'Resumir até agora',
+      genDigest: () => self._genDigest(),
+      digestEmpty: !S.digestReady && !S.digestLoading,
+      digestLoading: S.digestLoading, digestReady: S.digestReady,
+      digestBarStyle: { width: S.digestProg + '%', height:'100%', background:'#006A60', borderRadius:3, transition:'width .1s linear' },
+      digestBlocks: [
+        { range:'07:58 – 09:00', place:'Casa', title:'Início do dia', summary:'Preparação para o standup: revisão do orçamento do catálogo e pendência de resposta à Renata Albuquerque sobre a proposta.', hasAnchor:false, anchor:'' },
+        { range:'09:02 – 12:30', place:'Escritório', title:'Standup sprint 14 — catálogo v1', summary:'Migração do SIGO travada na fila de exportação; você assumiu a revisão do schema para hoje. Cronograma depende do fornecedor confirmar até quinta.', hasAnchor:true, anchor:'#reunião · Standup sprint 14 — foco no corte do catálogo v1' },
+        { range:'14:12 – 15:42', place:'Casa', title:'Call sobre o catálogo (EN)', summary:'Acordado enviar o mapping de SKUs hoje para destravar o ship da v1 sem bundle pricing; bundle adiado para a v1.1.', hasAnchor:false, anchor:'' },
+      ],
+      decisions: [
+        'Catálogo v1 sai sem bundle pricing — bundle vai para a v1.1',
+        'Revisão do schema do SIGO é sua e fecha hoje',
+        'Cronograma mantido se o fornecedor confirmar até quinta',
+      ],
+      myActions: [
+        { t:'Revisar schema do SIGO e mandar pro time', due:'hoje' },
+        { t:'Enviar mapping de SKUs', due:'hoje' },
+        { t:'Proposta do catálogo para a Renata', due:'amanhã' },
+        { t:'Remarcar dentista (consulta de quinta)', due:'pessoal' },
+      ],
+      otherActions: [{ t:'Fornecedor confirma o prazo do cronograma', who:'até quinta' }],
+      themes: ['catálogo v1','SIGO','sprint 14','fornecedor','SKUs'],
+      prevDays: [
+        { d:'domingo, 19 de julho', s:'Dia leve — planejamento da semana, mercado, ideia do grafo de tópicos', key:'2026-07-19' },
+        { d:'sábado, 18 de julho', s:'Churrasco na casa do Pedro — 2 sessões curtas, 14 anotações', key:'2026-07-18' },
+      ].map(p => ({ ...p, onTap: () => self.setState({ screen:'diaResumo', selDay:p.key }) })),
+      q: S.q, onQ: e => self.setState({ q:e.target.value }),
+      tagChips, suggestions,
+      showSearchHint: !searching,
+      hasResults: searching && results.length > 0,
+      showNoResults: searching && results.length === 0,
+      results,
+      bioT: self._mkToggle('bio'), loteT: self._mkToggle('lote'), autoT: self._mkToggle('auto'),
+      goEnroll: () => self.setState({ screen:'enrollment', enrollStep:1, enrollSec:0 }),
+      goGloss: () => self.setState({ screen:'glossario' }),
+      backAjustes: () => { clearInterval(self._ei); self.setState({ screen:'ajustes' }); },
+      glossCount: S.gloss.length + ' termos',
+      models: [
+        { name:'Whisper small q5', sub:'487 MB · checksum ok · transcrição' },
+        { name:'Qwen 2.5 3B Q4_K_M', sub:'2,1 GB · checksum ok · digest' },
+        { name:'Silero VAD', sub:'2 MB · checksum ok · detecção de fala' },
+        { name:'ECAPA-TDNN', sub:'83 MB · checksum ok · speaker ID' },
+      ],
+      verifyChecksums: () => self._toast('Checksums verificados · 4 modelos ok'),
+      sideload: () => self._toast('Selecione o arquivo .gguf / .onnx na pasta do app'),
+      params: [
+        { l:'Whisper — temperatura / beam', v:'0.0 / 5' },
+        { l:'Whisper — idioma', v:'pt-BR + auto' },
+        { l:'LLM — temperatura / contexto', v:'0.2 / 8k' },
+        { l:'VAD — threshold', v:'0.60' },
+        { l:'Speaker ID — threshold', v:'0.72' },
+        { l:'Fila offline — limite', v:'200 MB' },
+      ],
+      resetParams: () => self._toast('Parâmetros restaurados aos padrões'),
+      glossEntries: S.gloss,
+      openGlossSheet: () => self.setState({ showGlossSheet:true }),
+      closeGlossSheet: () => self.setState({ showGlossSheet:false, gTerm:'', gVar:'', gDesc:'' }),
+      gTerm: S.gTerm, gVar: S.gVar, gDesc: S.gDesc,
+      onGTerm: e => self.setState({ gTerm:e.target.value }),
+      onGVar: e => self.setState({ gVar:e.target.value }),
+      onGDesc: e => self.setState({ gDesc:e.target.value }),
+      saveGloss: () => {
+        const t = S.gTerm.trim();
+        if (!t){ self._toast('Informe a grafia canônica'); return; }
+        self.setState(s => ({
+          gloss: [{ term:t, variants: s.gVar.trim()||'—', desc: s.gDesc.trim()||'Sem descrição' }, ...s.gloss],
+          showGlossSheet:false, gTerm:'', gVar:'', gDesc:'',
+        }));
+        self._toast('Termo adicionado ao glossário');
+      },
+      enrollIs1: S.enrollStep===1, enrollIs2: S.enrollStep===2, enrollIs3: S.enrollStep===3,
+      beginReading: () => self._beginReading(),
+      cancelEnroll: () => { clearInterval(self._ei); self.setState({ enrollStep:1, enrollSec:0 }); },
+      enrollClock: clock(S.enrollSec),
+      enrollBarStyle: { width:(S.enrollSec/120*100)+'%', height:'100%', background:'#BA1A1A', borderRadius:3, transition:'width .1s linear' },
+      finishEnroll: () => { self.setState({ screen:'ajustes', enrollStep:1, enrollSec:0 }); self._toast('Perfil de voz atualizado'); },
+      showRecBar: mainIds.includes(S.screen) && S.screen !== 'hoje',
+      barTitle: isRec ? 'Gravando · 7h44' : 'Pausado às 15:42',
+      barDotStyle: isRec
+        ? { width:10, height:10, borderRadius:'50%', background:'#BA1A1A', animation:'mem-pulse 1.6s infinite', flexShrink:0 }
+        : { width:10, height:10, borderRadius:'50%', background:'#6F7976', flexShrink:0 },
+      barBtnIcon: isRec ? 'pause' : 'mic',
+      showNav: mainIds.includes(S.screen),
+      navItems,
+      showNoteSheet: S.showNoteSheet,
+      noteText: S.noteText, onNoteText: e => self.setState({ noteText:e.target.value }),
+      noteTagChips, saveNote: () => self._saveNote(),
+      showGlossSheet: S.showGlossSheet,
+      showShade: S.showShade,
+      tiles: [
+        { icon:'wifi_off', label:'Wi-Fi', on:false },
+        { icon:'bluetooth_disabled', label:'Bluetooth', on:false },
+        { icon:'flashlight_on', label:'Lanterna', on:false },
+        { icon:'graphic_eq', label:'Memora', on:true },
+      ].map(t => ({
+        ...t,
+        iconColor: t.on ? '#ffffff' : '#3F4946',
+        style: { flex:1, height:52, borderRadius:26, background: t.on?'#006A60':'#DCE4E0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2 },
+      })),
+      shadeTitle: isRec ? 'Gravando há 7h44 · Escritório' : 'Pausado às 15:42 · toque para retomar',
+      shadeActions: !S.blindMode && !S.blindSaved,
+      shadePauseLabel: isRec ? 'Pausar' : 'Retomar',
+      blindMode: S.blindMode, blindSaved: S.blindSaved,
+      startBlind: () => self.setState({ blindMode:true, blindSaved:false }),
+      blindText: S.blindText, onBlind: e => self.setState({ blindText:e.target.value }),
+      saveBlind: () => self._saveBlind(),
+      toast: S.toast, toastVisible: !!S.toast,
+    };
+  },
+};
+
+/* ============================================================
+   Templates — mirror the .dc.html structure 1:1
+   ============================================================ */
+function tLock(V){
+  return `
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px">
+    <div style="width:64px;height:64px;border-radius:20px;background:#006A60;display:flex;align-items:center;justify-content:center;margin-bottom:4px"><span class="msi" style="font-size:32px;color:#ffffff">graphic_eq</span></div>
+    <div style="font-size:26px;font-weight:500;color:#171D1B;letter-spacing:0.2px">Memora</div>
+    <div style="font-size:13px;color:#6F7976">Desbloqueie para ler · tudo fica no dispositivo</div>
+    <div style="display:flex;gap:14px;margin:22px 0 26px">
+      ${V.pinDots.map(dot => `<div style="${css(dot.style)}"></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,72px);gap:14px">
+      ${V.keypad.map(key => `
+        <div ${on(key.onTap)} class="hv ac" style="width:72px;height:60px;border-radius:30px;background:#E9EFEC;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;color:#171D1B;--hb:#DCE4E0;--ha:#CDE8E1">${key.icon?`<span class="msi" style="font-size:26px;color:#006A60">${key.icon}</span>`:''}<span>${esc(key.label)}</span></div>
+      `).join('')}
+    </div>
+    ${V.lockRecNote ? `
+      <div style="display:flex;align-items:center;gap:8px;margin-top:30px;background:#E9EFEC;border-radius:20px;padding:7px 14px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#BA1A1A;animation:mem-pulse 1.6s infinite"></div>
+        <span style="font-size:12.5px;color:#3F4946">Gravação continua em segundo plano · 7h44</span>
+      </div>` : ''}
+  </div>`;
+}
+
+function tHoje(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="padding:14px 8px 8px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:24px;font-weight:400;color:#171D1B">Hoje</div>
+        <div style="font-size:13px;color:#6F7976;margin-top:1px">segunda-feira, 20 de julho</div>
+      </div>
+      <div style="display:flex">
+        <div ${on(V.openShade)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#3F4946">notifications</span></div>
+        <div ${on(V.doLock)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#3F4946">lock</span></div>
+      </div>
+    </div>
+    ${V.isRec ? `
+      <div style="margin:6px 16px 4px;background:#E9EFEC;border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:11px;height:11px;border-radius:50%;background:#BA1A1A;animation:mem-pulse 1.6s infinite;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:500;color:#171D1B">Gravando · 7h44</div>
+          <div style="font-size:12.5px;color:#6F7976;margin-top:1px">desde 07:58 · Casa → Escritório → Casa · fila: 2 chunks</div>
+        </div>
+        <div ${on(V.pauseRec)} class="hv" style="width:42px;height:42px;border-radius:21px;background:#DCE4E0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;--hb:#CFD8D4"><span class="msi" style="font-size:22px;color:#171D1B">pause</span></div>
+        <div ${on(V.openNote)} class="hv" style="width:42px;height:42px;border-radius:21px;background:#006A60;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;--hb:#00544C"><span class="msi" style="font-size:22px;color:#ffffff">edit_note</span></div>
+      </div>` : ''}
+    ${V.isPausedCard ? `
+      <div style="margin:6px 16px 4px;background:#ECEFED;border:1px dashed #A8B3AF;border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:11px;height:11px;border-radius:50%;background:#6F7976;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:500;color:#171D1B">Pausado às 15:42</div>
+          <div style="font-size:12.5px;color:#6F7976;margin-top:1px">o intervalo será registrado como gap</div>
+        </div>
+        <div ${on(V.resumeRec)} class="hv" style="display:flex;align-items:center;gap:6px;background:#006A60;border-radius:21px;padding:10px 16px;cursor:pointer;flex-shrink:0;--hb:#00544C"><span class="msi" style="font-size:19px;color:#ffffff">mic</span><span style="font-size:13.5px;font-weight:500;color:#ffffff">Retomar</span></div>
+      </div>` : ''}
+    <div style="padding:8px 16px 96px">
+      ${V.timeline.map(item => {
+        if (item.isPlace) return `
+          <div style="display:flex;align-items:center;gap:6px;margin:16px 0 4px">
+            <span class="msi" style="font-size:15px;color:#006A60">${item.icon}</span>
+            <span style="font-size:12px;font-weight:500;color:#3F4946;letter-spacing:0.4px">${esc(item.time)} · ${esc(item.name)}</span>
+            <div style="flex:1;height:1px;background:#E0E5E2"></div>
+          </div>`;
+        if (item.isSeg) return `
+          <div style="display:flex;gap:10px;margin:12px 0">
+            <div style="width:38px;font-size:11.5px;color:#6F7976;padding-top:3px;flex-shrink:0">${esc(item.time)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="${css(item.chipStyle)}">${esc(item.speaker)}</div>
+              <div style="font-size:14px;line-height:20px;color:#171D1B;margin-top:4px">${esc(item.text)}</div>
+            </div>
+          </div>`;
+        if (item.isNote) return `
+          <div style="display:flex;gap:10px;margin:12px 0">
+            <div style="width:38px;font-size:11.5px;color:#6F7976;padding-top:12px;flex-shrink:0">${esc(item.time)}</div>
+            <div style="flex:1;background:#CDE8E1;border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+              <span class="msi" style="font-size:18px;color:#00504A;padding-top:1px">edit_note</span>
+              <div style="min-width:0">
+                <div style="font-size:11.5px;font-weight:700;color:#00504A;letter-spacing:0.3px">${esc(item.tag)}</div>
+                <div style="font-size:14px;font-weight:500;line-height:19px;color:#00201C;margin-top:2px">${esc(item.text)}</div>
+              </div>
+            </div>
+          </div>`;
+        if (item.isGap) return `
+          <div style="margin:12px 0 12px 48px;border:1px dashed #A8B3AF;border-radius:12px;padding:8px 12px;font-size:12px;color:#6F7976;font-style:italic">${esc(item.range)} · gap: ${esc(item.reason)}</div>`;
+        return '';
+      }).join('')}
+      <div style="margin-top:16px;border:1px solid #DCE4E0;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <span class="msi" style="font-size:22px;color:#3F4946">summarize</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:#171D1B">Digest diário às 21:00</div>
+          <div style="font-size:12px;color:#6F7976">gerado no dispositivo · Qwen 2.5 3B</div>
+        </div>
+        <div ${on(V.genDigest)} class="hv" style="background:#006A60;color:#ffffff;border-radius:20px;padding:9px 16px;font-size:13.5px;font-weight:500;cursor:pointer;--hb:#00544C">${esc(V.ctaLabel)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tDigest(V){
+  let body;
+  if (V.digestEmpty){
+    body = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:70px 40px;text-align:center">
+        <span class="msi" style="font-size:46px;color:#A8B3AF">summarize</span>
+        <div style="font-size:16px;font-weight:500;color:#171D1B">Nenhum digest ainda hoje</div>
+        <div style="font-size:13.5px;line-height:19px;color:#6F7976">O digest roda automaticamente às 21:00 — ou gere agora com o que já foi transcrito.</div>
+        <div ${on(V.genDigest)} class="hv" style="margin-top:8px;background:#006A60;color:#ffffff;border-radius:22px;padding:11px 22px;font-size:14px;font-weight:500;cursor:pointer;--hb:#00544C">Resumir até agora</div>
+      </div>`;
+  } else if (V.digestLoading){
+    body = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:80px 40px;text-align:center">
+        <div style="width:34px;height:34px;border-radius:50%;border:3px solid #DCE4E0;border-top-color:#006A60;animation:mem-spin 0.9s linear infinite"></div>
+        <div style="font-size:15px;font-weight:500;color:#171D1B">Rodando Qwen 2.5 3B…</div>
+        <div style="font-size:12.5px;color:#6F7976">100% no dispositivo · sem rede · ~40s</div>
+        <div style="width:200px;height:6px;border-radius:3px;background:#DCE4E0;overflow:hidden;margin-top:6px"><div style="${css(V.digestBarStyle)}"></div></div>
+      </div>`;
+  } else {
+    body = `
+      <div style="padding:0 16px 96px">
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px">
+          <span class="msi" style="font-size:15px;color:#6F7976">memory</span>
+          <span style="font-size:12px;color:#6F7976">gerado às 15:42 no dispositivo · 41s · 2h37 de fala</span>
+        </div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:14px 0 6px">BLOCOS DO DIA</div>
+        ${V.digestBlocks.map(b => `
+          <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;padding:13px 15px;margin:8px 0">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11.5px;font-weight:700;color:#006A60;letter-spacing:0.3px">${esc(b.range)}</span>
+              <span style="font-size:11px;font-weight:500;color:#3F4946;background:#E9EFEC;border-radius:8px;padding:2px 8px">${esc(b.place)}</span>
+            </div>
+            <div style="font-size:15.5px;font-weight:500;color:#171D1B;margin-top:6px">${esc(b.title)}</div>
+            <div style="font-size:13.5px;line-height:19px;color:#3F4946;margin-top:4px">${esc(b.summary)}</div>
+            ${b.hasAnchor ? `
+              <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #ECF1EE">
+                <span class="msi" style="font-size:14px;color:#00504A">edit_note</span>
+                <span style="font-size:11.5px;font-style:italic;color:#00504A">âncora: ${esc(b.anchor)}</span>
+              </div>` : ''}
+          </div>`).join('')}
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 0 8px">DECISÕES</div>
+        ${V.decisions.map(d => `
+          <div style="display:flex;gap:8px;margin:7px 0;align-items:flex-start">
+            <span class="msi" style="font-size:18px;color:#006A60;padding-top:1px">check_circle</span>
+            <span style="font-size:14px;line-height:20px;color:#171D1B">${esc(d)}</span>
+          </div>`).join('')}
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 0 8px">MEUS COMPROMISSOS</div>
+        ${V.myActions.map(a => `
+          <div style="display:flex;gap:8px;margin:7px 0;align-items:center">
+            <span class="msi" style="font-size:19px;color:#6F7976">check_box_outline_blank</span>
+            <span style="flex:1;font-size:14px;line-height:20px;color:#171D1B">${esc(a.t)}</span>
+            <span style="font-size:11px;font-weight:500;color:#3F4946;background:#E9EFEC;border-radius:8px;padding:2px 8px;flex-shrink:0">${esc(a.due)}</span>
+          </div>`).join('')}
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 0 8px">DE TERCEIROS</div>
+        ${V.otherActions.map(a => `
+          <div style="display:flex;gap:8px;margin:7px 0;align-items:center">
+            <span class="msi" style="font-size:19px;color:#6F7976">person</span>
+            <span style="flex:1;font-size:14px;color:#171D1B">${esc(a.t)}</span>
+            <span style="font-size:11px;font-weight:500;color:#3F4946;background:#E9EFEC;border-radius:8px;padding:2px 8px;flex-shrink:0">${esc(a.who)}</span>
+          </div>`).join('')}
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 0 8px">TEMAS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${V.themes.map(t => `<span style="font-size:12.5px;font-weight:500;color:#00201C;background:#CDE8E1;border-radius:10px;padding:5px 12px">${esc(t)}</span>`).join('')}
+        </div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:22px 0 4px">DIAS ANTERIORES</div>
+        ${V.prevDays.map(p => `
+          <div ${on(p.onTap)} class="hv" style="display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid #ECF1EE;cursor:pointer;--hb:#F0F5F2">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:500;color:#171D1B">${esc(p.d)}</div>
+              <div style="font-size:12.5px;color:#6F7976;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.s)}</div>
+            </div>
+            <span class="msi" style="font-size:20px;color:#A8B3AF">chevron_right</span>
+          </div>`).join('')}
+      </div>`;
+  }
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="padding:14px 8px 8px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:24px;font-weight:400;color:#171D1B">Digest</div>
+        <div style="font-size:13px;color:#6F7976;margin-top:1px">segunda-feira, 20 de julho</div>
+      </div>
+      <div ${on(V.goCal)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#3F4946">calendar_month</span></div>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function tBuscar(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="margin:14px 16px 10px;background:#E9EFEC;border-radius:28px;height:52px;display:flex;align-items:center;gap:10px;padding:0 18px">
+      <span class="msi" style="font-size:22px;color:#3F4946">search</span>
+      <input data-fid="q" value="${esc(V.q)}" data-c="${bind(V.onQ)}" placeholder="Buscar no histórico…" style="flex:1;background:transparent;border:none;outline:none;font-size:15.5px;color:#171D1B">
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 6px">
+      ${V.tagChips.map(c => `<div ${on(c.onTap)} style="${css(c.style)}">${esc(c.label)}</div>`).join('')}
+    </div>
+    ${V.showSearchHint ? `
+      <div style="padding:40px 32px;text-align:center">
+        <span class="msi" style="font-size:38px;color:#A8B3AF">manage_search</span>
+        <div style="font-size:13.5px;line-height:19px;color:#6F7976;margin-top:8px">Busca full-text em transcrições e anotações — tudo local, nada sai do dispositivo.</div>
+        <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:16px">
+          ${V.suggestions.map(s => `<div ${on(s.onTap)} class="hv" style="font-size:13px;font-weight:500;color:#006A60;border:1px solid #BEC9C5;border-radius:16px;padding:6px 14px;cursor:pointer;--hb:#E9EFEC">${esc(s.label)}</div>`).join('')}
+        </div>
+      </div>` : ''}
+    ${V.hasResults ? `
+      <div style="padding:4px 0 96px">
+        ${V.results.map(r => `
+          <div style="padding:11px 16px;border-bottom:1px solid #ECF1EE">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="msi" style="font-size:14px;color:#6F7976">${r.icon}</span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:#6F7976">${esc(r.meta)}</span>
+              ${r.hasTag ? `<span style="font-size:10.5px;font-weight:700;color:#00504A;background:#CDE8E1;border-radius:6px;padding:1px 7px">${esc(r.tag)}</span>` : ''}
+            </div>
+            <div style="font-size:14px;line-height:19px;color:#171D1B;margin-top:4px">${esc(r.text)}</div>
+          </div>`).join('')}
+      </div>` : ''}
+    ${V.showNoResults ? `<div style="padding:50px 32px;text-align:center;font-size:14px;color:#6F7976">Nada encontrado para “${esc(V.q)}”</div>` : ''}
+  </div>`;
+}
+
+function tToggleRow(icon, title, sub, T){
+  return `
+    <div style="display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #ECF1EE">
+      <span class="msi" style="font-size:21px;color:#3F4946">${icon}</span>
+      <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">${title}</div><div style="font-size:12px;color:#6F7976">${sub}</div></div>
+      <div ${on(T.onTap)} style="${css(T.trackStyle)}"><div style="${css(T.knobStyle)}"></div></div>
+    </div>`;
+}
+
+function tAjustes(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="padding:14px 16px 4px;font-size:24px;font-weight:400;color:#171D1B">Ajustes</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:14px 16px 6px">SEGURANÇA</div>
+    <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;margin:0 16px">
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #ECF1EE">
+        <span class="msi" style="font-size:21px;color:#3F4946">lock_clock</span>
+        <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">Bloqueio automático</div><div style="font-size:12px;color:#6F7976">Após 1 min em segundo plano</div></div>
+        <span class="msi" style="font-size:20px;color:#A8B3AF">chevron_right</span>
+      </div>
+      ${tToggleRow('fingerprint','Desbloqueio por biometria','Atalho — a senha continua obrigatória',V.bioT)}
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 16px">
+        <span class="msi" style="font-size:21px;color:#3F4946">key</span>
+        <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">Alterar PIN</div><div style="font-size:12px;color:#6F7976">Rederiva a chave do banco (SQLCipher)</div></div>
+        <span class="msi" style="font-size:20px;color:#A8B3AF">chevron_right</span>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 16px 6px">VOZ E GLOSSÁRIO</div>
+    <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;margin:0 16px">
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #ECF1EE">
+        <span class="msi" style="font-size:21px;color:#3F4946">record_voice_over</span>
+        <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">Perfil de voz</div><div style="font-size:12px;color:#6F7976">Cadastrado · 2 ambientes · 7% não identificado</div></div>
+        <div ${on(V.goEnroll)} class="hv" style="font-size:13px;font-weight:500;color:#006A60;background:#CDE8E1;border-radius:16px;padding:7px 14px;cursor:pointer;--hb:#B8DED4">Refazer</div>
+      </div>
+      <div ${on(V.goGloss)} class="hv" style="display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;--hb:#F6FAF8">
+        <span class="msi" style="font-size:21px;color:#3F4946">menu_book</span>
+        <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">Glossário</div><div style="font-size:12px;color:#6F7976">${esc(V.glossCount)} · alimenta Whisper, correção e digest</div></div>
+        <span class="msi" style="font-size:20px;color:#A8B3AF">chevron_right</span>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 16px 6px">MODELOS (SIDELOAD)</div>
+    <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;margin:0 16px">
+      ${V.models.map(m => `
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #ECF1EE">
+          <span class="msi" style="font-size:20px;color:#006A60">verified</span>
+          <div style="flex:1"><div style="font-size:14.5px;color:#171D1B">${esc(m.name)}</div><div style="font-size:12px;color:#6F7976">${esc(m.sub)}</div></div>
+        </div>`).join('')}
+      <div style="display:flex;gap:4px;padding:8px 10px">
+        <div ${on(V.verifyChecksums)} class="hv" style="font-size:13px;font-weight:500;color:#006A60;border-radius:16px;padding:8px 12px;cursor:pointer;--hb:#E9EFEC">Verificar checksums</div>
+        <div ${on(V.sideload)} class="hv" style="font-size:13px;font-weight:500;color:#006A60;border-radius:16px;padding:8px 12px;cursor:pointer;--hb:#E9EFEC">Instalar modelo…</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#3F4946;margin:18px 16px 6px">TRANSCRIÇÃO E IA</div>
+    <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;margin:0 16px">
+      ${tToggleRow('battery_charging_full','Transcrever em lote','Fila processa quando carregando/ocioso',V.loteT)}
+      ${tToggleRow('schedule','Digest automático às 21:00','Ou ao conectar o carregador à noite',V.autoT)}
+      ${V.params.map(p => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1px solid #ECF1EE">
+          <span style="font-size:13.5px;color:#171D1B">${esc(p.l)}</span>
+          <span style="font-size:13px;color:#6F7976;font-family:'Roboto Mono',monospace">${esc(p.v)}</span>
+        </div>`).join('')}
+      <div style="padding:8px 10px"><div ${on(V.resetParams)} class="hv" style="display:inline-block;font-size:13px;font-weight:500;color:#006A60;border-radius:16px;padding:8px 12px;cursor:pointer;--hb:#E9EFEC">Restaurar padrões</div></div>
+    </div>
+    <div style="text-align:center;padding:22px 32px 96px">
+      <span class="msi" style="font-size:20px;color:#6F7976">wifi_off</span>
+      <div style="font-size:12px;line-height:17px;color:#6F7976;margin-top:4px">Sem permissão INTERNET · áudio nunca é gravado em disco<br>SQLCipher · chave no Android Keystore</div>
+    </div>
+  </div>`;
+}
+
+function tCal(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 8px 4px">
+      <div ${on(V.backDigest)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#171D1B">arrow_back</span></div>
+      <div style="flex:1;font-size:20px;font-weight:400;color:#171D1B">Calendário</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:8px 12px 4px">
+      <div ${on(V.calPrev)} class="hv" style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="${css(V.calPrevIconStyle)}">chevron_left</span></div>
+      <div style="flex:1;text-align:center;font-size:15.5px;font-weight:500;color:#171D1B">${esc(V.calMonthLabel)}</div>
+      <div ${on(V.calNext)} class="hv" style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="${css(V.calNextIconStyle)}">chevron_right</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px">
+      ${['D','S','T','Q','Q','S','S'].map(x => `<div style="text-align:center;font-size:11px;font-weight:700;color:#6F7976;padding:6px 0">${x}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 8px">
+      ${V.calCells.map(c => `
+        <div ${on(c.onTap)} style="${css(c.cellStyle)}">
+          <div style="${css(c.numStyle)}">${esc(c.label)}</div>
+          ${c.hasDot ? `<div style="width:5px;height:5px;border-radius:50%;background:#006A60;margin-top:2px"></div>` : ''}
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 16px 24px">
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;border-radius:50%;background:#006A60"></div><span style="font-size:12px;color:#6F7976">dia com registros</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:50%;background:#006A60"></div><span style="font-size:12px;color:#6F7976">hoje</span></div>
+    </div>
+  </div>`;
+}
+
+function tDiaResumo(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 8px 4px">
+      <div ${on(V.backCal)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#171D1B">arrow_back</span></div>
+      <div style="flex:1;font-size:20px;font-weight:400;color:#171D1B">Resumo do dia</div>
+    </div>
+    <div style="padding:6px 16px 40px">
+      <div style="font-size:20px;font-weight:500;color:#171D1B">${esc(V.dayTitle)}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin:4px 0 12px">
+        <span class="msi" style="font-size:15px;color:#6F7976">memory</span>
+        <span style="font-size:12.5px;color:#6F7976">${esc(V.dayStats)}</span>
+      </div>
+      ${V.dayBlocks.map(b => `
+        <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;padding:13px 15px;margin:8px 0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11.5px;font-weight:700;color:#006A60;letter-spacing:0.3px">${esc(b.range)}</span>
+            <span style="font-size:11px;font-weight:500;color:#3F4946;background:#E9EFEC;border-radius:8px;padding:2px 8px">${esc(b.place)}</span>
+          </div>
+          <div style="font-size:15.5px;font-weight:500;color:#171D1B;margin-top:6px">${esc(b.title)}</div>
+          <div style="font-size:13.5px;line-height:19px;color:#3F4946;margin-top:4px">${esc(b.summary)}</div>
+        </div>`).join('')}
+      ${V.dayHasDec ? `
+        <div style="display:flex;gap:8px;margin:12px 0;align-items:flex-start">
+          <span class="msi" style="font-size:18px;color:#006A60;padding-top:1px">check_circle</span>
+          <span style="font-size:14px;line-height:20px;color:#171D1B">${esc(V.dayDec)}</span>
+        </div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+        ${V.dayTemas.map(t => `<span style="font-size:12.5px;font-weight:500;color:#00201C;background:#CDE8E1;border-radius:10px;padding:5px 12px">${esc(t)}</span>`).join('')}
+      </div>
+      <div ${on(V.exportDay)} class="hv" style="display:inline-flex;align-items:center;gap:6px;margin-top:20px;font-size:13.5px;font-weight:500;color:#006A60;border:1px solid #BEC9C5;border-radius:18px;padding:9px 16px;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:17px;color:#006A60">download</span>Exportar em Markdown</div>
+    </div>
+  </div>`;
+}
+
+function tGloss(V){
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 8px 4px">
+      <div ${on(V.backAjustes)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#171D1B">arrow_back</span></div>
+      <div style="flex:1;font-size:20px;font-weight:400;color:#171D1B">Glossário</div>
+      <div ${on(V.openGlossSheet)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:24px;color:#006A60">add</span></div>
+    </div>
+    <div style="margin:6px 16px;background:#CDE8E1;border-radius:12px;padding:10px 14px;font-size:12.5px;line-height:17px;color:#00201C">Os termos enviesam o decoder do Whisper (initial_prompt), corrigem erros conhecidos após a transcrição e dão contexto ao digest.</div>
+    <div style="padding:4px 16px 40px">
+      ${V.glossEntries.map(g => `
+        <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:14px;padding:12px 15px;margin:8px 0">
+          <div style="font-size:15.5px;font-weight:500;color:#171D1B">${esc(g.term)}</div>
+          <div style="font-size:13px;color:#3F4946;margin-top:2px">${esc(g.desc)}</div>
+          <div style="font-size:11.5px;color:#6F7976;margin-top:6px;font-family:'Roboto Mono',monospace">erros conhecidos: ${esc(g.variants)}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function tEnroll(V){
+  let body;
+  if (V.enrollIs1){
+    body = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 36px 60px;text-align:center">
+        <div style="width:76px;height:76px;border-radius:38px;background:#CDE8E1;display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:36px;color:#006A60">record_voice_over</span></div>
+        <div style="font-size:20px;font-weight:500;color:#171D1B">Cadastrar sua voz</div>
+        <div style="font-size:13.5px;line-height:19px;color:#3F4946">Leia cerca de 2 minutos de texto em voz alta. O embedding (ECAPA-TDNN) fica criptografado no dispositivo — é dado biométrico e nunca sai daqui.</div>
+        <div style="font-size:12px;color:#6F7976">Recomendado: repetir em 2 ambientes diferentes</div>
+        <div ${on(V.beginReading)} class="hv" style="margin-top:10px;background:#006A60;color:#ffffff;border-radius:22px;padding:12px 24px;font-size:14px;font-weight:500;cursor:pointer;--hb:#00544C">Começar leitura</div>
+      </div>`;
+  } else if (V.enrollIs2){
+    body = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 24px 40px">
+        <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:16px;padding:16px 18px;font-size:15px;line-height:23px;color:#171D1B">“O motorista dobrou a esquina da Rua Quinze às sete e quarenta, enquanto o rádio anunciava chuva para quinta-feira. Dezenove, trezentos e doze, oitenta e quatro. A balsa atravessa a baía duas vezes por dia, mesmo com vento forte do sul.”</div>
+        <div style="width:88px;height:88px;border-radius:44px;background:#BA1A1A;display:flex;align-items:center;justify-content:center;animation:mem-pulse 1.4s infinite;margin-top:8px"><span class="msi" style="font-size:38px;color:#ffffff">mic</span></div>
+        <div style="font-size:16px;font-weight:700;color:#171D1B;font-variant-numeric:tabular-nums">${esc(V.enrollClock)} / 2:00</div>
+        <div style="width:220px;height:6px;border-radius:3px;background:#DCE4E0;overflow:hidden"><div style="${css(V.enrollBarStyle)}"></div></div>
+        <div style="font-size:12.5px;color:#6F7976">Ambiente 1 de 2 · fale no ritmo natural</div>
+        <div ${on(V.cancelEnroll)} class="hv" style="font-size:13.5px;font-weight:500;color:#006A60;padding:8px 14px;border-radius:16px;cursor:pointer;--hb:#E9EFEC">Cancelar</div>
+      </div>`;
+  } else {
+    body = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 36px 60px;text-align:center">
+        <div style="width:76px;height:76px;border-radius:38px;background:#CDE8E1;display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:38px;color:#006A60">verified</span></div>
+        <div style="font-size:20px;font-weight:500;color:#171D1B">Perfil atualizado</div>
+        <div style="background:#ffffff;border:1px solid #E0E5E2;border-radius:14px;padding:12px 16px;font-size:13.5px;line-height:20px;color:#3F4946">Qualidade: <b style="color:#171D1B">alta</b> · similaridade média 0,91<br>Segmentos “não identificado”: estimativa 7% → 3%</div>
+        <div style="font-size:12px;color:#6F7976">Embedding criptografado · Android Keystore</div>
+        <div ${on(V.finishEnroll)} class="hv" style="margin-top:10px;background:#006A60;color:#ffffff;border-radius:22px;padding:12px 24px;font-size:14px;font-weight:500;cursor:pointer;--hb:#00544C">Concluir</div>
+      </div>`;
+  }
+  return `
+  <div class="app-scroll" style="flex:1;overflow:auto;min-height:0;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 8px 4px">
+      <div ${on(V.backAjustes)} class="hv" style="width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#E9EFEC"><span class="msi" style="font-size:22px;color:#171D1B">arrow_back</span></div>
+      <div style="font-size:20px;font-weight:400;color:#171D1B">Perfil de voz</div>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function tRecBar(V){
+  return `
+  <div style="background:#ECF2EF;border-top:1px solid #E0E5E2;padding:8px 16px;display:flex;align-items:center;gap:10px">
+    <div style="${css(V.barDotStyle)}"></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:500;color:#171D1B">${esc(V.barTitle)}</div>
+      <div style="font-size:11.5px;color:#6F7976">Escritório · fila: 2 chunks · 18 MB</div>
+    </div>
+    <div ${on(V.openNote)} class="hv" style="width:38px;height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#DCE4E0"><span class="msi" style="font-size:21px;color:#006A60">edit_note</span></div>
+    <div ${on(V.barBtnTap)} class="hv" style="width:38px;height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;--hb:#DCE4E0"><span class="msi" style="font-size:21px;color:#171D1B">${V.barBtnIcon}</span></div>
+  </div>`;
+}
+
+function tNav(V){
+  return `
+  <div style="background:#ECF2EF;display:flex;padding:8px 0 6px">
+    ${V.navItems.map(n => `
+      <div ${on(n.onTap)} style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+        <div style="${css(n.pillStyle)}"><span class="msi" style="${css(n.iconStyle)}">${n.icon}</span></div>
+        <span style="${css(n.labelStyle)}">${esc(n.label)}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+function tNoteSheet(V){
+  return `
+  <div ${on(V.closeNote)} style="position:absolute;inset:0;background:rgba(23,29,27,0.4);z-index:20"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#F6FAF8;border-radius:24px 24px 0 0;padding:10px 18px 20px;z-index:21;animation:mem-slideup 0.22s ease-out">
+    <div style="width:32px;height:4px;border-radius:2px;background:#BEC9C5;margin:0 auto 12px"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;font-size:16px;font-weight:500;color:#171D1B">Anotação rápida</div>
+      <div style="font-size:12px;font-weight:500;color:#3F4946;background:#E9EFEC;border-radius:10px;padding:3px 10px;font-variant-numeric:tabular-nums">ancorada às 15:42</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+      ${V.noteTagChips.map(c => `<div ${on(c.onTap)} style="${css(c.style)}">${esc(c.label)}</div>`).join('')}
+    </div>
+    <textarea data-fid="note" data-c="${bind(V.onNoteText)}" placeholder="reunião de trabalho sobre…" style="width:100%;box-sizing:border-box;background:#E9EFEC;border:none;outline:none;border-radius:14px;padding:12px 14px;min-height:76px;font-size:15px;color:#171D1B;resize:none">${esc(V.noteText)}</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:12px">
+      <div ${on(V.closeNote)} class="hv" style="font-size:14px;font-weight:500;color:#006A60;padding:10px 16px;border-radius:20px;cursor:pointer;--hb:#E9EFEC">Cancelar</div>
+      <div ${on(V.saveNote)} class="hv" style="font-size:14px;font-weight:500;color:#ffffff;background:#006A60;padding:10px 20px;border-radius:20px;cursor:pointer;--hb:#00544C">Salvar</div>
+    </div>
+  </div>`;
+}
+
+function tGlossSheet(V){
+  const inp = (fid, cb, ph, val) => `<input data-fid="${fid}" data-c="${bind(cb)}" placeholder="${esc(ph)}" value="${esc(val)}" style="background:#E9EFEC;border:none;outline:none;border-radius:12px;padding:12px 14px;font-size:14.5px;color:#171D1B">`;
+  return `
+  <div ${on(V.closeGlossSheet)} style="position:absolute;inset:0;background:rgba(23,29,27,0.4);z-index:20"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#F6FAF8;border-radius:24px 24px 0 0;padding:10px 18px 20px;z-index:21;animation:mem-slideup 0.22s ease-out">
+    <div style="width:32px;height:4px;border-radius:2px;background:#BEC9C5;margin:0 auto 12px"></div>
+    <div style="font-size:16px;font-weight:500;color:#171D1B;margin-bottom:12px">Novo termo</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${inp('gTerm', V.onGTerm, 'Grafia canônica (ex.: SIGO)', V.gTerm)}
+      ${inp('gVar', V.onGVar, 'Erros conhecidos, separados por vírgula', V.gVar)}
+      ${inp('gDesc', V.onGDesc, 'Descrição (opcional — contexto pro digest)', V.gDesc)}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:14px">
+      <div ${on(V.closeGlossSheet)} class="hv" style="font-size:14px;font-weight:500;color:#006A60;padding:10px 16px;border-radius:20px;cursor:pointer;--hb:#E9EFEC">Cancelar</div>
+      <div ${on(V.saveGloss)} class="hv" style="font-size:14px;font-weight:500;color:#ffffff;background:#006A60;padding:10px 20px;border-radius:20px;cursor:pointer;--hb:#00544C">Adicionar</div>
+    </div>
+  </div>`;
+}
+
+function tShade(V){
+  return `
+  <div ${on(V.closeShade)} style="position:absolute;inset:0;background:rgba(10,14,13,0.5);z-index:30"></div>
+  <div style="position:absolute;left:0;right:0;top:0;background:#ECF2EF;border-radius:0 0 28px 28px;padding:14px 14px 8px;z-index:31;animation:mem-shade 0.22s ease-out">
+    <div style="display:flex;align-items:baseline;gap:10px;padding:2px 8px 12px">
+      <span style="font-size:20px;font-weight:500;color:#171D1B">15:42</span>
+      <span style="font-size:13px;color:#6F7976">seg, 20 jul</span>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 2px 12px">
+      ${V.tiles.map(t => `<div style="${css(t.style)}"><span class="msi" style="font-size:20px;color:${t.iconColor}">${t.icon}</span><span style="font-size:11px;font-weight:500;color:${t.iconColor}">${esc(t.label)}</span></div>`).join('')}
+    </div>
+    <div style="background:#F6FAF8;border-radius:18px;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:18px;height:18px;border-radius:6px;background:#006A60;display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:12px;color:#ffffff">graphic_eq</span></div>
+        <span style="font-size:12px;font-weight:500;color:#3F4946">Memora · captura ativa</span>
+        <span style="font-size:11.5px;color:#6F7976">· agora</span>
+      </div>
+      <div style="font-size:14.5px;font-weight:500;color:#171D1B;margin-top:8px">${esc(V.shadeTitle)}</div>
+      <div style="font-size:12px;color:#6F7976;margin-top:2px">Fila: 2 chunks · áudio efêmero, nunca gravado em disco</div>
+      ${V.shadeActions ? `
+        <div style="display:flex;gap:18px;margin-top:10px;padding-left:2px">
+          <div ${on(V.startBlind)} style="font-size:13.5px;font-weight:700;color:#006A60;cursor:pointer">Anotar</div>
+          <div ${on(V.barBtnTap)} style="font-size:13.5px;font-weight:700;color:#006A60;cursor:pointer">${esc(V.shadePauseLabel)}</div>
+        </div>` : ''}
+      ${V.blindMode ? `
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <input data-fid="blind" data-c="${bind(V.onBlind)}" placeholder="Anotar sem desbloquear…" value="${esc(V.blindText)}" style="flex:1;background:#E9EFEC;border:none;outline:none;border-radius:20px;padding:10px 16px;font-size:14px;color:#171D1B">
+          <div ${on(V.saveBlind)} style="width:40px;height:40px;border-radius:20px;background:#006A60;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><span class="msi" style="font-size:19px;color:#ffffff">send</span></div>
+        </div>
+        <div style="font-size:11.5px;color:#6F7976;margin-top:6px">Escrita às cegas: salva criptografada sem desbloquear a leitura</div>` : ''}
+      ${V.blindSaved ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
+          <span class="msi" style="font-size:17px;color:#006A60">check_circle</span>
+          <span style="font-size:13px;color:#171D1B">Anotação ancorada às 15:42 — sem desbloquear</span>
+        </div>` : ''}
+    </div>
+    <div ${on(V.closeShade)} style="display:flex;justify-content:center;padding:6px 0 2px;cursor:pointer"><span class="msi" style="font-size:22px;color:#6F7976">keyboard_arrow_up</span></div>
+  </div>`;
+}
+
+/* ============================================================
+   Root render
+   ============================================================ */
+function render(){
+  HANDLERS = [];
+  const V = App.renderVals();
+
+  // capture focus to restore after innerHTML swap
+  const ae = document.activeElement;
+  let focus = null;
+  if (ae && ae.dataset && ae.dataset.fid){
+    focus = { fid: ae.dataset.fid, start: ae.selectionStart, end: ae.selectionEnd };
+  }
+
+  let inner = '';
+  if (V.locked){
+    inner = tLock(V);
+  } else {
+    let screen = '';
+    if (V.isHoje) screen = tHoje(V);
+    else if (V.isDigest) screen = tDigest(V);
+    else if (V.isBuscar) screen = tBuscar(V);
+    else if (V.isAjustes) screen = tAjustes(V);
+    else if (V.isCal) screen = tCal(V);
+    else if (V.isDiaResumo) screen = tDiaResumo(V);
+    else if (V.isGloss) screen = tGloss(V);
+    else if (V.isEnroll) screen = tEnroll(V);
+
+    inner = `<div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      ${screen}
+      ${V.showRecBar ? tRecBar(V) : ''}
+      ${V.showNav ? tNav(V) : ''}
+    </div>`;
+  }
+
+  // overlays (rendered above the app column, inside app-root)
+  let overlays = '';
+  if (V.showNoteSheet) overlays += tNoteSheet(V);
+  if (V.showGlossSheet) overlays += tGlossSheet(V);
+  if (V.showShade) overlays += tShade(V);
+  if (V.toastVisible) overlays += `<div style="position:absolute;left:16px;right:16px;bottom:92px;background:#2D3230;color:#ECF2EF;border-radius:10px;padding:12px 16px;font-size:13.5px;z-index:40;animation:mem-toast 0.2s ease-out;box-shadow:0 4px 14px rgba(0,0,0,0.25)">${esc(V.toast)}</div>`;
+
+  const root = document.getElementById('app');
+  root.innerHTML = inner + overlays;
+
+  // restore focus
+  if (focus){
+    const elx = root.querySelector(`[data-fid="${focus.fid}"]`);
+    if (elx){
+      elx.focus();
+      try { elx.setSelectionRange(focus.start, focus.end); } catch(e){}
+    }
+  }
+}
+
+/* delegated events */
+document.getElementById('app').addEventListener('click', e => {
+  const t = e.target.closest('[data-h]');
+  if (!t) return;
+  const fn = HANDLERS[+t.getAttribute('data-h')];
+  if (fn) fn(e);
+});
+function inputHandler(e){
+  const t = e.target.closest('[data-c]');
+  if (!t) return;
+  const fn = HANDLERS[+t.getAttribute('data-c')];
+  if (fn) fn(e);
+}
+document.getElementById('app').addEventListener('input', inputHandler);
+
+render();
+</script>
+</body>
+</html>

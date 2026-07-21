@@ -1,0 +1,36 @@
+# Build
+.gradle/
+build/
+build-logic/build/
+*/build/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.kotlin/
+local.properties
+captures/
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Modelos sideload (nunca versionar — .gguf/.onnx grandes)
+*.gguf
+*.onnx
+*.bin
+/models/
+
+# OS
+.DS_Store
+
+# Artefatos soltos (não fazem parte do projeto buildável)
+*.zip
+
+# Segredos / keystore
+*.jks
+*.keystore
+keystore.properties
