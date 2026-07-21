@@ -95,8 +95,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:db`: entidades `Session`/`Segment`/`TimelineGap`, DAOs e `MemoraDatabase` (Room).
   - ✅ Adaptadores fila↔banco (`RoomSegmentSink`/`RoomGapSink`) com teste de integração real
     (Room in-memory).
-  - 🚧 `:core:security`: derivação de chave PIN→Keystore + auto-lock.
-  - ⏭️ Captura real (`AudioRecord` + Foreground Service), whisper.cpp, DB cifrado com SQLCipher.
+  - ✅ `:core:security`: derivação de chave PIN→chave (PBKDF2, sem persistir a chave), verificação
+    de PIN, store cifrado por Keystore e auto-lock — testados; DI via `SecurityModule` (Hilt).
+  - ✅ Seam DB cifrado (`buildEncryptedDatabase`, SQLCipher) ligando a chave derivada ao banco.
+  - ⏭️ Captura real (`AudioRecord` + Foreground Service), whisper.cpp (JNI), fluxo de unlock/onboarding.
 
 Plano de engenharia completo em [`docs/plano-de-desenvolvimento.md`](docs/plano-de-desenvolvimento.md).
 O protótipo navegável de UI está em [`index.html`](index.html).
