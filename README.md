@@ -105,12 +105,18 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ **Pipeline ponta-a-ponta provado** por teste de integração: PCM cru → `CapturePipeline` →
     store efêmero → `TranscriptionQueue` → `RoomSegmentSink` → banco, com o áudio destruído só após
     o texto persistir.
-  - ⏭️ Captura real (`AudioRecord` + Foreground Service), whisper.cpp (JNI), fluxo de unlock/onboarding.
+  - ✅ `:feature:today` (leitura da tela "Hoje"): `TodayViewModel` combina falas + gaps do dia em
+    uma timeline cronológica (`TodayTimeline`, junção pura), com `DayRange` traduzindo "hoje" no
+    fuso do usuário para o intervalo que os DAOs consultam, e `CaptureController` como *seam* de
+    start/stop. Leitura real sobre o Room (`RoomTodayRepository`) mora em `:app`, espelhando
+    `RoomSegmentSink` — a UI não conhece o schema do banco. Tudo testado (fakes + Room in-memory).
+  - ⏭️ Captura real (`AudioRecord` + Foreground Service) e a tela Compose de "Hoje" ligada ao
+    `TodayViewModel`; whisper.cpp (JNI); fluxo de unlock/onboarding.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
-(fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX) e a fonte de PCM
-(`CapturePipeline.onAudio` ← `AudioRecord`). O miolo — fila, efemeridade, persistência, segurança —
-já está testado.
+(fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
+(`CapturePipeline.onAudio` ← `AudioRecord`) e o `CaptureController` (fake → Foreground Service). O
+miolo — fila, efemeridade, persistência, segurança e a leitura da timeline — já está testado.
 
 Plano de engenharia completo em [`docs/plano-de-desenvolvimento.md`](docs/plano-de-desenvolvimento.md).
 O protótipo navegável de UI está em [`index.html`](index.html).
