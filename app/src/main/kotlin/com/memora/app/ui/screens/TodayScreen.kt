@@ -1,5 +1,6 @@
 package com.memora.app.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,10 +22,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.memora.app.data.exportDayMarkdown
 import com.memora.app.ui.HomeViewModel
 import com.memora.core.common.timeline.DayItem
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -37,9 +42,30 @@ private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val items by home.items.collectAsState()
     var noteText by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text("Hoje", style = MaterialTheme.typography.headlineMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Hoje", style = MaterialTheme.typography.headlineMedium)
+            TextButton(
+                onClick = {
+                    val markdown = exportDayMarkdown(items, LocalDate.now(), emptyList(), ZoneId.systemDefault())
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/markdown"
+                        putExtra(Intent.EXTRA_TEXT, markdown)
+                        putExtra(Intent.EXTRA_TITLE, "Memora — ${LocalDate.now()}")
+                    }
+                    context.startActivity(Intent.createChooser(send, "Exportar o dia"))
+                },
+                enabled = items.isNotEmpty(),
+            ) {
+                Text("Exportar")
+            }
+        }
 
         if (items.isEmpty()) {
             Text(
