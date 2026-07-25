@@ -137,6 +137,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     embedding (o fluxo real: ~2 min em 2 ambientes) no `VoiceProfile` do dono — centroide normalizado
     (L2) — e devolve a `cohesion` das amostras como proxy de qualidade (gancho de re-treino, RF-22).
     Puro (o embedding em si é do modelo ECAPA-TDNN); soma-se ao `decideSpeaker` já testado.
+  - ✅ `:core:location` (§5.3, lugar vigente): `PlaceTimeline` colapsa as amostras de localização em
+    intervalos de "lugar vigente" com histerese (uma leitura espúria na borda de um raio não troca
+    o lugar) e resolve o lugar de um instante — como segmentos/anotações herdam o lugar (RF-29/30).
+    Puro; a coordenada→lugar continua no `GeocodingProvider` offline (Haversine, zero rede).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
