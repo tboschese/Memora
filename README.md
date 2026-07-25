@@ -137,6 +137,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     embedding (o fluxo real: ~2 min em 2 ambientes) no `VoiceProfile` do dono — centroide normalizado
     (L2) — e devolve a `cohesion` das amostras como proxy de qualidade (gancho de re-treino, RF-22).
     Puro (o embedding em si é do modelo ECAPA-TDNN); soma-se ao `decideSpeaker` já testado.
+    `SpeakerAttribution.attribute` classifica vários segmentos de uma vez centralizando a **regra 5**:
+    sem perfil (enrollment não feito), tudo vira `UNKNOWN` — nunca chutar. Testado.
   - ✅ `:core:location` (§5.3, lugar vigente): `PlaceTimeline` colapsa as amostras de localização em
     intervalos de "lugar vigente" com histerese (uma leitura espúria na borda de um raio não troca
     o lugar) e resolve o lugar de um instante — como segmentos/anotações herdam o lugar (RF-29/30).
