@@ -5,7 +5,10 @@ package com.memora.core.security
  * mesmo trancado). State machine pura — o tempo entra como parâmetro (`nowMs`), então é testável
  * sem relógio real. A biometria (BiometricPrompt) é só um atalho de [unlock] na camada de UI.
  */
-class AutoLockController(private val timeoutMs: Long) {
+class AutoLockController(private val timeoutMs: () -> Long) {
+    /** Conveniência para um timeout fixo (usada em testes e quando não há ajuste dinâmico). */
+    constructor(timeoutMs: Long) : this({ timeoutMs })
+
     private var unlocked = false
     private var lastActivityMs = 0L
 
@@ -32,7 +35,7 @@ class AutoLockController(private val timeoutMs: Long) {
      * ao retomar o app / em ticks. Retorna o estado resultante (`true` = destrancado).
      */
     fun refresh(nowMs: Long): Boolean {
-        if (unlocked && nowMs - lastActivityMs >= timeoutMs) unlocked = false
+        if (unlocked && nowMs - lastActivityMs >= timeoutMs()) unlocked = false
         return unlocked
     }
 }

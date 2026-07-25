@@ -30,11 +30,15 @@ object SecurityModule {
     @Singleton
     fun providePinVault(store: SecurityStore): PinVault = PinVault(store)
 
-    /** Estado único de auto-lock do app (regra 4: protege a leitura, não a captura). */
+    /**
+     * Estado único de auto-lock do app (regra 4: protege a leitura, não a captura). O timeout é
+     * dinâmico — lê o ajuste vigente ([com.memora.feature.settings.MemoraSettings.autoLockTimeoutMs]),
+     * então mudar nos Ajustes tem efeito imediato no próximo `refresh`.
+     */
     @Provides
     @Singleton
-    fun provideAutoLockController(): AutoLockController =
-        AutoLockController(timeoutMs = DEFAULT_AUTO_LOCK_MS)
-
-    private const val DEFAULT_AUTO_LOCK_MS = 120_000L // 2 min
+    fun provideAutoLockController(
+        settings: com.memora.feature.settings.SettingsRepository,
+    ): AutoLockController =
+        AutoLockController(timeoutMs = { settings.settings.value.autoLockTimeoutMs })
 }
