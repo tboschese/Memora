@@ -5,8 +5,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.memora.app.session.SessionPhase
+import com.memora.app.ui.screens.MainScreen
 import com.memora.app.ui.screens.OnboardingScreen
-import com.memora.app.ui.screens.TodayScreen
 import com.memora.app.ui.screens.UnlockScreen
 import com.memora.app.ui.theme.MemoraTheme
 
@@ -22,7 +22,7 @@ fun MemoraApp(appViewModel: AppViewModel = hiltViewModel()) {
         when (phase) {
             SessionPhase.ONBOARDING -> OnboardingScreen(appViewModel.onboarding)
             SessionPhase.LOCKED -> UnlockScreen(appViewModel.unlock)
-            SessionPhase.UNLOCKED -> TodayScreen(appViewModel)
+            SessionPhase.UNLOCKED -> MainScreen(appViewModel)
         }
     }
 }

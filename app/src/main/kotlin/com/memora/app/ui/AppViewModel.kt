@@ -2,11 +2,15 @@ package com.memora.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.memora.app.data.RoomDigestSources
 import com.memora.app.data.RoomNotesRepository
+import com.memora.app.data.RoomSearchIndex
 import com.memora.app.data.RoomUnifiedTimeline
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.app.session.SessionCoordinator
 import com.memora.app.session.SessionPhase
+import com.memora.core.digest.fake.FakeDigestProvider
+import com.memora.feature.digest.DigestViewModel
 import com.memora.feature.onboarding.OnboardingViewModel
 import com.memora.feature.onboarding.PinGate
 import com.memora.feature.onboarding.SetupStep
@@ -53,4 +57,17 @@ class AppViewModel @Inject constructor(
             now = { System.currentTimeMillis() },
         )
     }
+
+    /** ViewModel da tela de Digest. Usa o provider fake até o LLM local (whisper/llama) existir. */
+    fun createDigestViewModel(): DigestViewModel {
+        val db = holder.database
+        return DigestViewModel(
+            sources = RoomDigestSources(db.segmentDao(), db.noteDao()),
+            provider = FakeDigestProvider(),
+        )
+    }
+
+    /** ViewModel da tela de Busca sobre os dados do dia. */
+    fun createSearchViewModel(): SearchViewModel =
+        SearchViewModel(RoomSearchIndex(holder.database.segmentDao(), holder.database.noteDao()))
 }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,10 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.memora.app.ui.AppViewModel
 import com.memora.app.ui.HomeViewModel
 import com.memora.core.common.timeline.DayItem
 import java.time.Instant
@@ -35,57 +30,52 @@ import java.time.format.DateTimeFormatter
 private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * Tela "Hoje": a timeline unificada do dia (por enquanto, as anotações) e um campo para escrever
- * uma nota nova. O `HomeViewModel` é criado com o banco da sessão, aberto no unlock.
+ * Conteúdo da aba "Hoje": a timeline unificada do dia (por enquanto, as anotações) e um campo para
+ * escrever uma nota nova. Sem `Scaffold` próprio — vive dentro do `MainScreen`.
  */
 @Composable
-fun TodayScreen(appViewModel: AppViewModel) {
-    val home: HomeViewModel = viewModel(
-        factory = viewModelFactory { initializer { appViewModel.createHomeViewModel() } },
-    )
+fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val items by home.items.collectAsState()
     var noteText by remember { mutableStateOf("") }
 
-    Scaffold { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Text("Hoje", style = MaterialTheme.typography.headlineMedium)
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        Text("Hoje", style = MaterialTheme.typography.headlineMedium)
 
-            if (items.isEmpty()) {
-                Text(
-                    "Nada por aqui ainda. Escreva uma anotação abaixo.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            }
+        if (items.isEmpty()) {
+            Text(
+                "Nada por aqui ainda. Escreva uma anotação abaixo.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(items, key = { it.itemKey() }) { item -> DayItemRow(item) }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = noteText,
+                onValueChange = { noteText = it },
+                label = { Text("Nova anotação") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Button(
+                onClick = {
+                    home.addNote(noteText)
+                    noteText = ""
+                },
+                enabled = noteText.isNotBlank(),
             ) {
-                items(items, key = { it.itemKey() }) { item -> DayItemRow(item) }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = noteText,
-                    onValueChange = { noteText = it },
-                    label = { Text("Nova anotação") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    onClick = {
-                        home.addNote(noteText)
-                        noteText = ""
-                    },
-                    enabled = noteText.isNotBlank(),
-                ) {
-                    Text("Anotar")
-                }
+                Text("Anotar")
             }
         }
     }
