@@ -148,7 +148,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     `NoteDraft` (id/timestamp atribuídos por *seam*, rascunho vazio ignorado), atrás do
     `NotesRepository`. Nova entidade `NoteEntity` + `NoteDao` (banco na v2), com tags rápidas
     (#reunião/#ideia/…) e âncora opcional a um segmento (RF-07/08). `RoomNotesRepository` (`:app`)
-    faz o round-trip real. Testado (fakes + Room in-memory).
+    faz o round-trip real. Testado (fakes + Room in-memory). `NoteAnchor.anchorFor` liga a nota ao
+    segmento vigente no instante em que foi feita (o "timestamp exato" do RF-07), puro e testado.
   - ✅ `:core:models` (§8, sideload): `FileModelRegistry` verifica presença e integridade dos modelos
     sideloaded (`.gguf`/`.onnx`) numa pasta — `statuses()` barato (só existência), `verify()`
     recalcula o SHA-256 fora da main thread. Modelo ausente degrada a feature; presente com hash
