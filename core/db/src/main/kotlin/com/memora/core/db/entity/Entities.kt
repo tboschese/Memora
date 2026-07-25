@@ -57,3 +57,21 @@ data class TimelineGapEntity(
     /** Motivo (`GapReason`) persistido como String. */
     val reason: String,
 )
+
+/**
+ * Anotação do usuário (Fase 2, §5.1). Diferente de um `SegmentEntity`, nasce do usuário, não da
+ * transcrição — mas divide a timeline por [createdAtMs] e pode ancorar num segmento ([segmentId],
+ * o "timestamp exato" do RF-07). As tags rápidas (#reunião/#ideia/…) ficam separadas por espaço em
+ * [tags] — são tokens sem espaço, então dispensam um TypeConverter; a camada de cima faz split/join.
+ */
+@Entity(tableName = "note", indices = [Index("createdAtMs"), Index("segmentId")])
+data class NoteEntity(
+    @PrimaryKey val id: String,
+    val text: String,
+    val createdAtMs: Long,
+    /** Segmento ancorado, quando a nota foi feita durante a captura (null para nota avulsa). */
+    val segmentId: String? = null,
+    /** Tags rápidas serializadas (space-separated), "" quando não há. */
+    val tags: String = "",
+    val place: String? = null,
+)

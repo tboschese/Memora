@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
+import com.memora.core.db.entity.NoteEntity
 import com.memora.core.db.entity.SegmentEntity
 import com.memora.core.db.entity.SessionEntity
 import com.memora.core.db.entity.TimelineGapEntity
@@ -51,4 +52,16 @@ interface TimelineGapDao {
 
     @Query("SELECT * FROM timeline_gap WHERE fromMs >= :fromMs AND fromMs < :toMs ORDER BY fromMs")
     fun observeInRange(fromMs: Long, toMs: Long): Flow<List<TimelineGapEntity>>
+}
+
+@Dao
+interface NoteDao {
+    @Upsert
+    suspend fun upsert(note: NoteEntity)
+
+    @Query("SELECT * FROM note WHERE createdAtMs >= :fromMs AND createdAtMs < :toMs ORDER BY createdAtMs")
+    fun observeInRange(fromMs: Long, toMs: Long): Flow<List<NoteEntity>>
+
+    @Query("DELETE FROM note WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

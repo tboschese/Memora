@@ -141,6 +141,11 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     intervalos de "lugar vigente" com histerese (uma leitura espúria na borda de um raio não troca
     o lugar) e resolve o lugar de um instante — como segmentos/anotações herdam o lugar (RF-29/30).
     Puro; a coordenada→lugar continua no `GeocodingProvider` offline (Haversine, zero rede).
+  - ✅ `:feature:notes` (§5.1, anotações): `NotesViewModel` observa as notas do dia e salva um
+    `NoteDraft` (id/timestamp atribuídos por *seam*, rascunho vazio ignorado), atrás do
+    `NotesRepository`. Nova entidade `NoteEntity` + `NoteDao` (banco na v2), com tags rápidas
+    (#reunião/#ideia/…) e âncora opcional a um segmento (RF-07/08). `RoomNotesRepository` (`:app`)
+    faz o round-trip real. Testado (fakes + Room in-memory).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
