@@ -153,6 +153,9 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:digest` (§5.5, agendamento): `DigestScheduler` decide, como política pura, quando gerar
     o digest do dia — prioriza o carregador entre 21h e 23h, gera de qualquer forma após 23h, e é
     idempotente por dia (RF-14/15/16). Sem relógio interno; tudo entra por parâmetro. Testado.
+  - ✅ `:core:glossary` (§5.4, RF-33): `GlossaryEditor.learnCorrection` aprende com edições manuais —
+    registra a grafia errada como variante da entrada canônica (cria a entrada se nova, sem duplicar,
+    case-insensitive), e o `GlossaryCorrector` passa a corrigi-la sozinho. Puro e testado.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
