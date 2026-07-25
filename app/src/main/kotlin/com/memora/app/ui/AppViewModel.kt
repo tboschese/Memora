@@ -3,6 +3,7 @@ package com.memora.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.memora.app.data.RoomDigestSources
+import com.memora.app.data.RoomGlossaryRepository
 import com.memora.app.data.RoomNotesRepository
 import com.memora.app.data.RoomSearchIndex
 import com.memora.app.data.RoomUnifiedTimeline
@@ -76,6 +77,12 @@ class AppViewModel @Inject constructor(
 
     /** ViewModel da tela de Ajustes. */
     fun createSettingsViewModel(): SettingsViewModel = SettingsViewModel(settingsRepository)
+
+    /** ViewModel da gerência do glossário. */
+    fun createGlossaryViewModel(): GlossaryViewModel = GlossaryViewModel(
+        repository = RoomGlossaryRepository(holder.database.glossaryDao()),
+        newId = { UUID.randomUUID().toString() },
+    )
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()

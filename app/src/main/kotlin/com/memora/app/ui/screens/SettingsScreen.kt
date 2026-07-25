@@ -30,7 +30,11 @@ import com.memora.feature.settings.SettingsViewModel
  * ficam de fora da UI por ora. Salvar normaliza; "Restaurar padrões" volta ao `DEFAULT`.
  */
 @Composable
-fun SettingsContent(viewModel: SettingsViewModel, modifier: Modifier = Modifier) {
+fun SettingsContent(
+    viewModel: SettingsViewModel,
+    onOpenGlossary: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val settings by viewModel.settings.collectAsState()
 
     var autoLockMin by remember(settings) { mutableStateOf((settings.autoLockTimeoutMs / 60_000).toString()) }
@@ -74,6 +78,10 @@ fun SettingsContent(viewModel: SettingsViewModel, modifier: Modifier = Modifier)
             OutlinedButton(onClick = { viewModel.reset() }) {
                 Text("Restaurar padrões")
             }
+        }
+
+        OutlinedButton(onClick = onOpenGlossary, modifier = Modifier.fillMaxWidth()) {
+            Text("Gerenciar glossário")
         }
 
         Text(

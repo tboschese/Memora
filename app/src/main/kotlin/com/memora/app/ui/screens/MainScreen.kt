@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.memora.app.ui.AppViewModel
+import com.memora.app.ui.GlossaryViewModel
 import com.memora.app.ui.HomeViewModel
 import com.memora.app.ui.SearchViewModel
 import com.memora.feature.digest.DigestViewModel
@@ -57,6 +58,16 @@ fun MainScreen(appViewModel: AppViewModel) {
     )
 
     var tab by remember { mutableStateOf(MainTab.TODAY) }
+    var showGlossary by remember { mutableStateOf(false) }
+
+    if (showGlossary) {
+        val glossary: GlossaryViewModel = viewModel(
+            key = "glossary",
+            factory = viewModelFactory { initializer { appViewModel.createGlossaryViewModel() } },
+        )
+        GlossaryScreen(glossary, onBack = { showGlossary = false })
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -85,7 +96,7 @@ fun MainScreen(appViewModel: AppViewModel) {
             MainTab.TODAY -> TodayContent(home, contentModifier)
             MainTab.DIGEST -> DigestContent(digest, contentModifier)
             MainTab.SEARCH -> SearchContent(search, contentModifier)
-            MainTab.SETTINGS -> SettingsContent(settings, contentModifier)
+            MainTab.SETTINGS -> SettingsContent(settings, onOpenGlossary = { showGlossary = true }, modifier = contentModifier)
         }
     }
 }
