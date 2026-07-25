@@ -110,13 +110,24 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     fuso do usuário para o intervalo que os DAOs consultam, e `CaptureController` como *seam* de
     start/stop. Leitura real sobre o Room (`RoomTodayRepository`) mora em `:app`, espelhando
     `RoomSegmentSink` — a UI não conhece o schema do banco. Tudo testado (fakes + Room in-memory).
-  - ⏭️ Captura real (`AudioRecord` + Foreground Service) e a tela Compose de "Hoje" ligada ao
-    `TodayViewModel`; whisper.cpp (JNI); fluxo de unlock/onboarding.
+  - ✅ `:feature:onboarding` (fluxo de PIN): `PinPolicy` (forma do PIN, pura), `OnboardingViewModel`
+    (definir PIN em dois passos, escolher→confirmar) e `UnlockViewModel` (desbloqueio), atrás do
+    `PinGate` — a UI nunca vê a chave. O `SecurityPinGate` real mora em `:app`: deriva a chave via
+    `PinVault`, abre a sessão cifrada (`EncryptedSession`, seam de device) e destranca o auto-lock,
+    zerando a chave em seguida. Testado com `PinVault` sobre store em memória (sem device/PBKDF2 caro).
+  - ✅ `SessionCoordinator` (`:app`): o cérebro de navegação — combina "existe PIN?" com o estado do
+    auto-lock e expõe a fase da sessão (`ONBOARDING`/`LOCKED`/`UNLOCKED`) como `StateFlow`. Máquina de
+    estados pura (relógio por parâmetro), reagindo a autenticou/atividade/timeout/lock. Governa só a
+    leitura — a captura segue em background (regra 4). Testado sem device.
+  - ⏭️ Captura real (`AudioRecord` + Foreground Service) e as telas Compose (Hoje, PIN) ligadas aos
+    ViewModels/`SessionCoordinator`; a `EncryptedSession` real sobre `buildEncryptedDatabase`;
+    whisper.cpp (JNI).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
-(`CapturePipeline.onAudio` ← `AudioRecord`) e o `CaptureController` (fake → Foreground Service). O
-miolo — fila, efemeridade, persistência, segurança e a leitura da timeline — já está testado.
+(`CapturePipeline.onAudio` ← `AudioRecord`), o `CaptureController` (fake → Foreground Service) e a
+`EncryptedSession` (fake → `buildEncryptedDatabase`). O miolo — fila, efemeridade, persistência,
+segurança, o fluxo de PIN e a leitura da timeline — já está testado.
 
 Plano de engenharia completo em [`docs/plano-de-desenvolvimento.md`](docs/plano-de-desenvolvimento.md).
 O protótipo navegável de UI está em [`index.html`](index.html).

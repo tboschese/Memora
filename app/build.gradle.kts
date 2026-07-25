@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
     // Room in-memory para o teste de integração do pipeline de transcrição (sem SQLCipher).
