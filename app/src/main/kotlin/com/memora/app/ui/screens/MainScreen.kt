@@ -1,10 +1,13 @@
 package com.memora.app.ui.screens
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +34,7 @@ private enum class MainTab(val label: String, val icon: String) {
  * ViewModels são criados uma vez (com chaves distintas) a partir do banco da sessão e sobrevivem à
  * troca de abas.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(appViewModel: AppViewModel) {
     val home: HomeViewModel = viewModel(
@@ -49,6 +53,14 @@ fun MainScreen(appViewModel: AppViewModel) {
     var tab by remember { mutableStateOf(MainTab.TODAY) }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Memora") },
+                actions = {
+                    TextButton(onClick = { appViewModel.lock() }) { Text("🔒 Trancar") }
+                },
+            )
+        },
         bottomBar = {
             NavigationBar {
                 MainTab.entries.forEach { t ->

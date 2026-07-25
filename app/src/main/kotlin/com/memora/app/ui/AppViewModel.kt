@@ -70,4 +70,7 @@ class AppViewModel @Inject constructor(
     /** ViewModel da tela de Busca sobre os dados do dia. */
     fun createSearchViewModel(): SearchViewModel =
         SearchViewModel(RoomSearchIndex(holder.database.segmentDao(), holder.database.noteDao()))
+
+    /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
+    fun lock() = coordinator.lock()
 }
