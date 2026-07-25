@@ -10,7 +10,7 @@ import com.memora.app.data.RoomUnifiedTimeline
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.app.session.SessionCoordinator
 import com.memora.app.session.SessionPhase
-import com.memora.core.digest.fake.FakeDigestProvider
+import com.memora.core.digest.HeuristicDigestProvider
 import com.memora.feature.digest.DigestViewModel
 import com.memora.feature.onboarding.OnboardingViewModel
 import com.memora.feature.onboarding.PinGate
@@ -62,12 +62,12 @@ class AppViewModel @Inject constructor(
         )
     }
 
-    /** ViewModel da tela de Digest. Usa o provider fake até o LLM local (whisper/llama) existir. */
+    /** ViewModel da tela de Digest. Usa a heurística por tags até o LLM local (whisper/llama) existir. */
     fun createDigestViewModel(): DigestViewModel {
         val db = holder.database
         return DigestViewModel(
             sources = RoomDigestSources(db.segmentDao(), db.noteDao()),
-            provider = FakeDigestProvider(),
+            provider = HeuristicDigestProvider(),
         )
     }
 

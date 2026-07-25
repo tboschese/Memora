@@ -40,4 +40,5 @@ internal fun NoteEntity.toDigestSource(): DigestSource = DigestSource(
     speaker = SpeakerLabel.SELF, // a anotação é a voz explícita do dono
     text = text,
     place = place,
+    tags = if (tags.isEmpty()) emptyList() else tags.split(" ").filter { it.isNotBlank() },
 )

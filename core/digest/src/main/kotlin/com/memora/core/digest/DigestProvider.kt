@@ -24,6 +24,8 @@ data class DigestSource(
     val speaker: SpeakerLabel,
     val text: String,
     val place: String? = null,
+    /** Tags da fonte (das anotações do usuário); vazio para falas transcritas. */
+    val tags: List<String> = emptyList(),
 )
 
 /** Saída estruturada do digest. Cada lista é validada por schema na impl real. */
