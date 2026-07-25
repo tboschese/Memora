@@ -71,6 +71,18 @@ class HomeViewModel(
         }
     }
 
+    /** Edita uma nota existente preservando seu instante ([atMs]); reparseia `#tags`. Texto vazio apaga. */
+    fun editNote(id: String, atMs: Long, raw: String) {
+        val draft = NoteInput.parse(raw)
+        if (draft.isBlank) {
+            deleteNote(id)
+            return
+        }
+        viewModelScope.launch {
+            notes.add(Note(id = id, text = draft.text, createdAtMs = atMs, tags = draft.tags))
+        }
+    }
+
     fun deleteNote(id: String) {
         viewModelScope.launch { notes.delete(id) }
     }

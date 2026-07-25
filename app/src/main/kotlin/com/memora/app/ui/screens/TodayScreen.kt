@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +45,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val date by home.date.collectAsState()
     val isToday by home.isToday.collectAsState()
     var noteText by remember { mutableStateOf("") }
+    var editing by remember { mutableStateOf<DayItem.UserNote?>(null) }
     val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -92,7 +94,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(items, key = { it.itemKey() }) { item ->
-                DayItemRow(item, onDelete = home::deleteNote)
+                DayItemRow(item, onDelete = home::deleteNote, onEdit = { editing = it })
             }
         }
 
@@ -120,10 +122,55 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             }
         }
     }
+
+    editing?.let { note ->
+        EditNoteDialog(
+            note = note,
+            onDismiss = { editing = null },
+            onSave = { raw ->
+                home.editNote(note.id, note.atMs, raw)
+                editing = null
+            },
+        )
+    }
 }
 
 @Composable
-private fun DayItemRow(item: DayItem, onDelete: (String) -> Unit) {
+private fun EditNoteDialog(
+    note: DayItem.UserNote,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    val initial = remember(note) {
+        buildString {
+            append(note.text)
+            note.tags.forEach { append(" #").append(it) }
+        }
+    }
+    var text by remember(note) { mutableStateOf(initial) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar anotação") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Texto (use #tag)") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = { TextButton(onClick = { onSave(text) }) { Text("Salvar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+@Composable
+private fun DayItemRow(
+    item: DayItem,
+    onDelete: (String) -> Unit,
+    onEdit: (DayItem.UserNote) -> Unit,
+) {
     val time = TIME.format(Instant.ofEpochMilli(item.atMs).atZone(ZoneId.systemDefault()))
     val text = when (item) {
         is DayItem.Speech -> buildString {
@@ -143,6 +190,7 @@ private fun DayItemRow(item: DayItem, onDelete: (String) -> Unit) {
             Text(text, style = MaterialTheme.typography.bodyMedium)
         }
         if (item is DayItem.UserNote) {
+            TextButton(onClick = { onEdit(item) }) { Text("✎") }
             TextButton(onClick = { onDelete(item.id) }) { Text("✕") }
         }
     }
