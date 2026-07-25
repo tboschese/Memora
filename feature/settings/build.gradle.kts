@@ -10,4 +10,5 @@ dependencies {
     implementation(projects.core.common)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kotlinx.coroutines.android)
 }

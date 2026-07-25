@@ -1,12 +1,14 @@
 package com.memora.app.di
 
 import com.memora.app.data.EncryptedSession
+import com.memora.app.data.PrefsSettingsRepository
 import com.memora.app.data.SecurityPinGate
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.app.session.SessionCoordinator
 import com.memora.core.security.AutoLockController
 import com.memora.core.security.PinVault
 import com.memora.feature.onboarding.PinGate
+import com.memora.feature.settings.SettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,4 +42,8 @@ object AppModule {
         gate: PinGate,
         autoLock: AutoLockController,
     ): SessionCoordinator = SessionCoordinator(gate, autoLock)
+
+    @Provides
+    @Singleton
+    fun settingsRepository(repository: PrefsSettingsRepository): SettingsRepository = repository
 }

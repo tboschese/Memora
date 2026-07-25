@@ -15,6 +15,8 @@ import com.memora.feature.onboarding.OnboardingViewModel
 import com.memora.feature.onboarding.PinGate
 import com.memora.feature.onboarding.SetupStep
 import com.memora.feature.onboarding.UnlockViewModel
+import com.memora.feature.settings.SettingsRepository
+import com.memora.feature.settings.SettingsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -31,6 +33,7 @@ class AppViewModel @Inject constructor(
     gate: PinGate,
     private val coordinator: SessionCoordinator,
     private val holder: SessionDatabaseHolder,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     val onboarding = OnboardingViewModel(gate)
@@ -70,6 +73,9 @@ class AppViewModel @Inject constructor(
     /** ViewModel da tela de Busca sobre os dados do dia. */
     fun createSearchViewModel(): SearchViewModel =
         SearchViewModel(RoomSearchIndex(holder.database.segmentDao(), holder.database.noteDao()))
+
+    /** ViewModel da tela de Ajustes. */
+    fun createSettingsViewModel(): SettingsViewModel = SettingsViewModel(settingsRepository)
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()

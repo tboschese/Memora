@@ -3,6 +3,7 @@ package com.memora.app.ui
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.memora.app.data.EncryptedSession
+import com.memora.app.data.PrefsSettingsRepository
 import com.memora.app.data.SecurityPinGate
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.app.session.SessionCoordinator
@@ -59,8 +60,9 @@ class AppViewModelTest {
             derivationDispatcher = UnconfinedTestDispatcher(),
         )
         val coordinator = SessionCoordinator(gate, autoLock, clock = { 0L })
-        val holder = SessionDatabaseHolder(ApplicationProvider.getApplicationContext<Application>())
-        return AppViewModel(gate, coordinator, holder)
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val holder = SessionDatabaseHolder(context)
+        return AppViewModel(gate, coordinator, holder, PrefsSettingsRepository(context))
     }
 
     @Test

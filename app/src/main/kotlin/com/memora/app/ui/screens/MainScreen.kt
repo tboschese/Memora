@@ -21,12 +21,14 @@ import com.memora.app.ui.AppViewModel
 import com.memora.app.ui.HomeViewModel
 import com.memora.app.ui.SearchViewModel
 import com.memora.feature.digest.DigestViewModel
+import com.memora.feature.settings.SettingsViewModel
 
 /** Abas principais pós-unlock. Ícones em emoji para não puxar a lib de material-icons. */
 private enum class MainTab(val label: String, val icon: String) {
     TODAY("Hoje", "📅"),
     DIGEST("Digest", "📄"),
     SEARCH("Buscar", "🔎"),
+    SETTINGS("Ajustes", "⚙️"),
 }
 
 /**
@@ -48,6 +50,10 @@ fun MainScreen(appViewModel: AppViewModel) {
     val search: SearchViewModel = viewModel(
         key = "search",
         factory = viewModelFactory { initializer { appViewModel.createSearchViewModel() } },
+    )
+    val settings: SettingsViewModel = viewModel(
+        key = "settings",
+        factory = viewModelFactory { initializer { appViewModel.createSettingsViewModel() } },
     )
 
     var tab by remember { mutableStateOf(MainTab.TODAY) }
@@ -79,6 +85,7 @@ fun MainScreen(appViewModel: AppViewModel) {
             MainTab.TODAY -> TodayContent(home, contentModifier)
             MainTab.DIGEST -> DigestContent(digest, contentModifier)
             MainTab.SEARCH -> SearchContent(search, contentModifier)
+            MainTab.SETTINGS -> SettingsContent(settings, contentModifier)
         }
     }
 }
