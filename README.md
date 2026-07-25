@@ -169,6 +169,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     (default identidade) aplicado **antes** de persistir — logo, antes do descarte do áudio. Em `:app`,
     `TranscriptResult.correctedBy(corrector)` liga o `GlossaryCorrector` ao pipeline sem que
     `:core:transcription` conheça o `:core:glossary`. Testado (queue + correção).
+  - ✅ `:feature:settings` (§5.5, RF-34): `MemoraSettings` reúne os parâmetros avançados
+    (Whisper/VAD/speaker/auto-lock/digest) com defaults sensatos e `normalized()` que clampa cada
+    campo ao intervalo válido (idempotente) — o pipeline nunca recebe ajuste fora de faixa; reset =
+    `DEFAULT`. Puro e testado.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
