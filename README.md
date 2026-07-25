@@ -128,6 +128,11 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     LLM local depois) e expõe `Idle/Generating/Ready/Empty/Failed`. Dia sem falas não chama o modelo;
     falha do provider degrada para `Failed` sem derrubar a tela. `RoomDigestSources` (`:app`) lê o
     mesmo dia que a timeline. Testado (fakes + Room in-memory).
+  - ✅ `:core:glossary` (§5.4, ponto 1 da injeção): `GlossaryPrompt` monta o `initial_prompt` do
+    Whisper a partir das grafias canônicas, dentro de um orçamento de ~224 tokens e priorizando os
+    mais frequentes (pula termo que não cabe, dedup case-insensitive). A contagem de tokens é um
+    *seam* (heurística → BPE real do Whisper). Puro e testado. Soma-se à correção pós-transcrição
+    (`GlossaryCorrector`) já existente.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
