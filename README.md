@@ -133,6 +133,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     mais frequentes (pula termo que não cabe, dedup case-insensitive). A contagem de tokens é um
     *seam* (heurística → BPE real do Whisper). Puro e testado. Soma-se à correção pós-transcrição
     (`GlossaryCorrector`) já existente.
+  - ✅ `:core:speaker` (§5.2, enrollment): `VoiceEnrollment.buildProfile` funde as amostras de
+    embedding (o fluxo real: ~2 min em 2 ambientes) no `VoiceProfile` do dono — centroide normalizado
+    (L2) — e devolve a `cohesion` das amostras como proxy de qualidade (gancho de re-treino, RF-22).
+    Puro (o embedding em si é do modelo ECAPA-TDNN); soma-se ao `decideSpeaker` já testado.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
