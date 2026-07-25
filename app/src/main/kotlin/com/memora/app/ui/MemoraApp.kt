@@ -1,45 +1,28 @@
 package com.memora.app.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.memora.app.session.SessionPhase
+import com.memora.app.ui.screens.OnboardingScreen
+import com.memora.app.ui.screens.TodayScreen
+import com.memora.app.ui.screens.UnlockScreen
 import com.memora.app.ui.theme.MemoraTheme
 
 /**
- * Host de UI (placeholder do M0). O NavHost real e as telas (Hoje/Digest/Buscar/…)
- * entram nas Fases 1–3 conforme os módulos :feature:* forem implementados.
+ * Host de UI: navega por [SessionPhase] (o cérebro é o `SessionCoordinator`, via [AppViewModel]).
+ * Sem PIN → onboarding; com PIN e trancado → desbloqueio; destrancado → a tela "Hoje". A captura
+ * roda em segundo plano independentemente da fase (regra 4) quando o serviço real existir.
  */
 @Composable
-fun MemoraApp() {
+fun MemoraApp(appViewModel: AppViewModel = hiltViewModel()) {
     MemoraTheme {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(text = "Memora", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = "Baseline M0 — captura, transcrição e digest chegam nas próximas fases.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+        val phase by appViewModel.phase.collectAsState()
+        when (phase) {
+            SessionPhase.ONBOARDING -> OnboardingScreen(appViewModel.onboarding)
+            SessionPhase.LOCKED -> UnlockScreen(appViewModel.unlock)
+            SessionPhase.UNLOCKED -> TodayScreen(appViewModel)
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun MemoraAppPreview() {
-    MemoraApp()
 }

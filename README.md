@@ -119,9 +119,14 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     auto-lock e expõe a fase da sessão (`ONBOARDING`/`LOCKED`/`UNLOCKED`) como `StateFlow`. Máquina de
     estados pura (relógio por parâmetro), reagindo a autenticou/atividade/timeout/lock. Governa só a
     leitura — a captura segue em background (regra 4). Testado sem device.
-  - ⏭️ Captura real (`AudioRecord` + Foreground Service) e as telas Compose (Hoje, PIN) ligadas aos
-    ViewModels/`SessionCoordinator`; a `EncryptedSession` real sobre `buildEncryptedDatabase`;
-    whisper.cpp (JNI).
+  - ✅ **UI ligada e app navegável**: `MemoraApp` navega por `SessionPhase` — onboarding de PIN,
+    desbloqueio e a tela "Hoje" (Compose, consumindo os ViewModels já testados). A `EncryptedSession`
+    real (`SessionDatabaseHolder`) abre o `MemoraDatabase` cifrado no unlock via `buildEncryptedDatabase`,
+    e o `AppModule` (Hilt) costura `PinGate`/`SessionCoordinator`/sessão. A tela "Hoje" mostra a
+    timeline unificada e permite **escrever anotações** — o app já é usável de ponta a ponta (PIN →
+    ler/escrever o dia) sem depender de captura de áudio. Gera APK (`:app:assembleDebug`).
+  - ⏭️ Captura real (`AudioRecord` + Foreground Service) e whisper.cpp (JNI) — o que falta para o dia
+    virar texto sozinho.
 - 🚧 **Fase 2 (Anotações + Digest)** — iniciada pela leitura, sem device:
   - ✅ `:feature:digest` (§5.5): `DigestViewModel` gera, sob demanda, o resumo estruturado do dia —
     busca as fontes (`DigestSources`, *seam*), delega a síntese ao `DigestProvider` (fake nos testes,
