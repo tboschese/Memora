@@ -2,10 +2,12 @@ package com.memora.core.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.memora.core.db.dao.GlossaryDao
 import com.memora.core.db.dao.NoteDao
 import com.memora.core.db.dao.SegmentDao
 import com.memora.core.db.dao.SessionDao
 import com.memora.core.db.dao.TimelineGapDao
+import com.memora.core.db.entity.GlossaryEntity
 import com.memora.core.db.entity.NoteEntity
 import com.memora.core.db.entity.SegmentEntity
 import com.memora.core.db.entity.SessionEntity
@@ -27,8 +29,9 @@ import com.memora.core.db.entity.TimelineGapEntity
         SegmentEntity::class,
         TimelineGapEntity::class,
         NoteEntity::class,
+        GlossaryEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class MemoraDatabase : RoomDatabase() {
@@ -36,6 +39,7 @@ abstract class MemoraDatabase : RoomDatabase() {
     abstract fun segmentDao(): SegmentDao
     abstract fun timelineGapDao(): TimelineGapDao
     abstract fun noteDao(): NoteDao
+    abstract fun glossaryDao(): GlossaryDao
 
     companion object {
         const val NAME = "memora.db"

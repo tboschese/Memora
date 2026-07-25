@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
+import com.memora.core.db.entity.GlossaryEntity
 import com.memora.core.db.entity.NoteEntity
 import com.memora.core.db.entity.SegmentEntity
 import com.memora.core.db.entity.SessionEntity
@@ -63,5 +64,17 @@ interface NoteDao {
     fun observeInRange(fromMs: Long, toMs: Long): Flow<List<NoteEntity>>
 
     @Query("DELETE FROM note WHERE id = :id")
+    suspend fun deleteById(id: String)
+}
+
+@Dao
+interface GlossaryDao {
+    @Upsert
+    suspend fun upsert(entry: GlossaryEntity)
+
+    @Query("SELECT * FROM glossary ORDER BY canonical")
+    fun observeAll(): Flow<List<GlossaryEntity>>
+
+    @Query("DELETE FROM glossary WHERE id = :id")
     suspend fun deleteById(id: String)
 }

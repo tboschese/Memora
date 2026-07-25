@@ -156,6 +156,9 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:glossary` (§5.4, RF-33): `GlossaryEditor.learnCorrection` aprende com edições manuais —
     registra a grafia errada como variante da entrada canônica (cria a entrada se nova, sem duplicar,
     case-insensitive), e o `GlossaryCorrector` passa a corrigi-la sozinho. Puro e testado.
+  - ✅ `:core:glossary` (§5.4, CRUD): `GlossaryRepository` (*seam*) + `GlossaryEntity`/`GlossaryDao`
+    (banco na v3) persistem o glossário que alimenta os 3 pontos de injeção. `RoomGlossaryRepository`
+    (`:app`) faz o round-trip real (variantes newline-separated). Testado (Room in-memory).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM

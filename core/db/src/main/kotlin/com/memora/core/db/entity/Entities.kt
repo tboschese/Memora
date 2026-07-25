@@ -75,3 +75,17 @@ data class NoteEntity(
     val tags: String = "",
     val place: String? = null,
 )
+
+/**
+ * Termo do glossário do usuário (Fase 2, §5.4): grafia canônica + variantes erradas a corrigir.
+ * As [variants] ficam separadas por `\n` (podem ser multi-palavra, mas nunca contêm quebra de
+ * linha) — dispensa TypeConverter; a camada de cima faz split/join. Ver `GlossaryEntry`.
+ */
+@Entity(tableName = "glossary", indices = [Index("canonical")])
+data class GlossaryEntity(
+    @PrimaryKey val id: String,
+    val canonical: String,
+    /** Variantes serializadas (newline-separated), "" quando não há. */
+    val variants: String = "",
+    val description: String? = null,
+)
