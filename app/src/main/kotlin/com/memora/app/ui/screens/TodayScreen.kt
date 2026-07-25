@@ -41,6 +41,8 @@ private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val items by home.items.collectAsState()
+    val date by home.date.collectAsState()
+    val isToday by home.isToday.collectAsState()
     var noteText by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -50,14 +52,14 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Hoje", style = MaterialTheme.typography.headlineMedium)
+            Text(if (isToday) "Hoje" else date.toString(), style = MaterialTheme.typography.headlineMedium)
             TextButton(
                 onClick = {
-                    val markdown = exportDayMarkdown(items, LocalDate.now(), emptyList(), ZoneId.systemDefault())
+                    val markdown = exportDayMarkdown(items, date, emptyList(), ZoneId.systemDefault())
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "text/markdown"
                         putExtra(Intent.EXTRA_TEXT, markdown)
-                        putExtra(Intent.EXTRA_TITLE, "Memora — ${LocalDate.now()}")
+                        putExtra(Intent.EXTRA_TITLE, "Memora — $date")
                     }
                     context.startActivity(Intent.createChooser(send, "Exportar o dia"))
                 },
@@ -65,6 +67,16 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             ) {
                 Text("Exportar")
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = home::previousDay) { Text("‹ Anterior") }
+            if (!isToday) TextButton(onClick = home::goToToday) { Text("Hoje") }
+            TextButton(onClick = home::nextDay, enabled = !isToday) { Text("Seguinte ›") }
         }
 
         if (items.isEmpty()) {
@@ -92,8 +104,9 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             OutlinedTextField(
                 value = noteText,
                 onValueChange = { noteText = it },
-                label = { Text("Nova anotação (use #tag)") },
+                label = { Text(if (isToday) "Nova anotação (use #tag)" else "Anotar só no dia de hoje") },
                 singleLine = true,
+                enabled = isToday,
                 modifier = Modifier.weight(1f),
             )
             Button(
@@ -101,7 +114,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
                     home.addNote(noteText)
                     noteText = ""
                 },
-                enabled = noteText.isNotBlank(),
+                enabled = isToday && noteText.isNotBlank(),
             ) {
                 Text("Anotar")
             }
