@@ -185,6 +185,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:common` (timeline unificada): `DayItem` (fala/nota/gap) + `DayTimeline.merge` intercalam
     as três fontes numa timeline cronológica única (ordenação estável, desempate determinístico).
     Modelo comum para a tela unificada intercalar sem um feature depender de outro. Puro e testado.
+    Em `:app`, `RoomUnifiedTimeline` compõe a timeline reativa das três tabelas (falas + notas + gaps)
+    — onde as fontes de features distintas se encontram. Testado (Room in-memory).
 - 🚧 **Fase 4 (Inteligência avançada)** — primeira peça pura:
   - ✅ `:core:digest` (§7, weekly review): `WeeklyReview.aggregate` cruza os digests de vários dias
     num `WeeklyDigest` — temas por frequência (empate alfabético, top 10), decisões em ordem
