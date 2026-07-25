@@ -33,6 +33,7 @@ dependencies {
     implementation(projects.core.digest)
     implementation(projects.core.glossary)
     implementation(projects.core.speaker)
+    implementation(projects.core.location)
 
     // Features
     implementation(projects.feature.today)

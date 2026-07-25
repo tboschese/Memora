@@ -144,6 +144,9 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     intervalos de "lugar vigente" com histerese (uma leitura espúria na borda de um raio não troca
     o lugar) e resolve o lugar de um instante — como segmentos/anotações herdam o lugar (RF-29/30).
     Puro; a coordenada→lugar continua no `GeocodingProvider` offline (Haversine, zero rede).
+    `NamedPlaceRepository` (*seam*) + `NamedPlaceEntity`/`NamedPlaceDao` (banco na v4) persistem os
+    lugares nomeados; `RoomNamedPlaceRepository` (`:app`) os salva e alimenta o geocoding offline.
+    Testado (Room in-memory + matching por proximidade).
   - ✅ `:feature:notes` (§5.1, anotações): `NotesViewModel` observa as notas do dia e salva um
     `NoteDraft` (id/timestamp atribuídos por *seam*, rascunho vazio ignorado), atrás do
     `NotesRepository`. Nova entidade `NoteEntity` + `NoteDao` (banco na v2), com tags rápidas

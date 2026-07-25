@@ -89,3 +89,16 @@ data class GlossaryEntity(
     val variants: String = "",
     val description: String? = null,
 )
+
+/**
+ * Lugar nomeado pelo usuário (Fase 2, §5.3): um ponto + raio de match. O geocoding é offline —
+ * casa por proximidade (Haversine), sem rede. Ver `NamedPlace` em `:core:location`.
+ */
+@Entity(tableName = "named_place")
+data class NamedPlaceEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusMeters: Double = 120.0,
+)
