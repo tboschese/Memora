@@ -146,6 +146,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     `NotesRepository`. Nova entidade `NoteEntity` + `NoteDao` (banco na v2), com tags rápidas
     (#reunião/#ideia/…) e âncora opcional a um segmento (RF-07/08). `RoomNotesRepository` (`:app`)
     faz o round-trip real. Testado (fakes + Room in-memory).
+  - ✅ `:core:models` (§8, sideload): `FileModelRegistry` verifica presença e integridade dos modelos
+    sideloaded (`.gguf`/`.onnx`) numa pasta — `statuses()` barato (só existência), `verify()`
+    recalcula o SHA-256 fora da main thread. Modelo ausente degrada a feature; presente com hash
+    divergente nunca é usado. Sem rede; testado com arquivos reais (JVM puro).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
