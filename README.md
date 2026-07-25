@@ -150,6 +150,9 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     sideloaded (`.gguf`/`.onnx`) numa pasta — `statuses()` barato (só existência), `verify()`
     recalcula o SHA-256 fora da main thread. Modelo ausente degrada a feature; presente com hash
     divergente nunca é usado. Sem rede; testado com arquivos reais (JVM puro).
+  - ✅ `:core:digest` (§5.5, agendamento): `DigestScheduler` decide, como política pura, quando gerar
+    o digest do dia — prioriza o carregador entre 21h e 23h, gera de qualquer forma após 23h, e é
+    idempotente por dia (RF-14/15/16). Sem relógio interno; tudo entra por parâmetro. Testado.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
