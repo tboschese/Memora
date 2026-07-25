@@ -8,6 +8,8 @@ android {
 
 dependencies {
     implementation(projects.core.common)
+    implementation(projects.core.digest)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kotlinx.coroutines.android)
 }

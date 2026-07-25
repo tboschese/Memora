@@ -106,8 +106,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     store efêmero → `TranscriptionQueue` → `RoomSegmentSink` → banco, com o áudio destruído só após
     o texto persistir.
   - ✅ `:feature:today` (leitura da tela "Hoje"): `TodayViewModel` combina falas + gaps do dia em
-    uma timeline cronológica (`TodayTimeline`, junção pura), com `DayRange` traduzindo "hoje" no
-    fuso do usuário para o intervalo que os DAOs consultam, e `CaptureController` como *seam* de
+    uma timeline cronológica (`TodayTimeline`, junção pura), com o `DayRange` de `:core:common`
+    traduzindo "hoje" no fuso do usuário para o intervalo que os DAOs consultam, e `CaptureController` como *seam* de
     start/stop. Leitura real sobre o Room (`RoomTodayRepository`) mora em `:app`, espelhando
     `RoomSegmentSink` — a UI não conhece o schema do banco. Tudo testado (fakes + Room in-memory).
   - ✅ `:feature:onboarding` (fluxo de PIN): `PinPolicy` (forma do PIN, pura), `OnboardingViewModel`
@@ -122,6 +122,12 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ⏭️ Captura real (`AudioRecord` + Foreground Service) e as telas Compose (Hoje, PIN) ligadas aos
     ViewModels/`SessionCoordinator`; a `EncryptedSession` real sobre `buildEncryptedDatabase`;
     whisper.cpp (JNI).
+- 🚧 **Fase 2 (Anotações + Digest)** — iniciada pela leitura, sem device:
+  - ✅ `:feature:digest` (§5.5): `DigestViewModel` gera, sob demanda, o resumo estruturado do dia —
+    busca as fontes (`DigestSources`, *seam*), delega a síntese ao `DigestProvider` (fake nos testes,
+    LLM local depois) e expõe `Idle/Generating/Ready/Empty/Failed`. Dia sem falas não chama o modelo;
+    falha do provider degrada para `Failed` sem derrubar a tela. `RoomDigestSources` (`:app`) lê o
+    mesmo dia que a timeline. Testado (fakes + Room in-memory).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM

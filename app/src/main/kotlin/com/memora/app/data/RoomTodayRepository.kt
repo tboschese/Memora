@@ -5,7 +5,7 @@ import com.memora.core.db.dao.SegmentDao
 import com.memora.core.db.dao.TimelineGapDao
 import com.memora.core.db.entity.SegmentEntity
 import com.memora.core.db.entity.TimelineGapEntity
-import com.memora.feature.today.DayRange
+import com.memora.core.common.time.DayRange
 import com.memora.feature.today.TodayGapReason
 import com.memora.feature.today.TodayItem
 import com.memora.feature.today.TodayRepository
@@ -45,5 +45,6 @@ internal fun TimelineGapEntity.toGap(): TodayItem.Gap = TodayItem.Gap(
     reason = TodayGapReason.fromPersisted(reason),
 )
 
-private fun String.toSpeakerLabel(): SpeakerLabel =
+/** O speaker persistido é uma String livre; um rótulo fora do enum degrada para `UNKNOWN`. */
+internal fun String.toSpeakerLabel(): SpeakerLabel =
     SpeakerLabel.entries.firstOrNull { it.name == this } ?: SpeakerLabel.UNKNOWN

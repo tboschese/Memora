@@ -1,4 +1,4 @@
-package com.memora.feature.today
+package com.memora.core.common.time
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows

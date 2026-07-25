@@ -7,7 +7,7 @@ import com.memora.core.common.model.SpeakerLabel
 import com.memora.core.db.MemoraDatabase
 import com.memora.core.db.entity.SegmentEntity
 import com.memora.core.db.entity.TimelineGapEntity
-import com.memora.feature.today.DayRange
+import com.memora.core.common.time.DayRange
 import com.memora.feature.today.TodayGapReason
 import com.memora.feature.today.TodayItem
 import kotlinx.coroutines.flow.first

@@ -30,6 +30,7 @@ dependencies {
     implementation(projects.core.db)
     implementation(projects.core.audio)
     implementation(projects.core.transcription)
+    implementation(projects.core.digest)
 
     // Features
     implementation(projects.feature.today)
