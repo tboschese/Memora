@@ -40,6 +40,10 @@ interface SegmentDao {
     @Query("SELECT * FROM segment WHERE startMs >= :fromMs AND startMs < :toMs ORDER BY startMs")
     fun observeInRange(fromMs: Long, toMs: Long): Flow<List<SegmentEntity>>
 
+    /** Instantâneo de todos os segmentos (busca full-history; ordenar/filtrar na camada de cima). */
+    @Query("SELECT * FROM segment")
+    suspend fun snapshotAll(): List<SegmentEntity>
+
     @Query("UPDATE segment SET speaker = :speaker WHERE id = :segmentId")
     suspend fun setSpeaker(segmentId: String, speaker: String)
 
@@ -63,6 +67,10 @@ interface NoteDao {
 
     @Query("SELECT * FROM note WHERE createdAtMs >= :fromMs AND createdAtMs < :toMs ORDER BY createdAtMs")
     fun observeInRange(fromMs: Long, toMs: Long): Flow<List<NoteEntity>>
+
+    /** Instantâneo de todas as notas (busca full-history). */
+    @Query("SELECT * FROM note")
+    suspend fun snapshotAll(): List<NoteEntity>
 
     @Query("DELETE FROM note WHERE id = :id")
     suspend fun deleteById(id: String)

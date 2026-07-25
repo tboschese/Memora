@@ -11,14 +11,21 @@ import com.memora.feature.search.SearchQuery
 import kotlinx.coroutines.flow.first
 
 /**
- * Busca sobre os dados do dia: projeta falas e notas em [SearchDocument] e aplica o [SearchMatcher]
- * de referência. Fica em `:app` — `:feature:search` não conhece `:core:db`. Um instantâneo por
- * busca (`first()`); a aceleração por FTS do Room entra depois sobre o mesmo contrato de matching.
+ * Busca sobre os dados: projeta falas e notas em [SearchDocument] e aplica o [SearchMatcher] de
+ * referência. Fica em `:app` — `:feature:search` não conhece `:core:db`. [searchAll] varre todo o
+ * histórico; [searchDay] restringe a um dia. Instantâneos sob demanda; a aceleração por FTS do Room
+ * entra depois sobre o mesmo contrato de matching.
  */
 class RoomSearchIndex(
     private val segments: SegmentDao,
     private val notes: NoteDao,
 ) {
+    suspend fun searchAll(query: SearchQuery): List<SearchDocument> {
+        val docs = segments.snapshotAll().map(SegmentEntity::toSearchDocument) +
+            notes.snapshotAll().map(NoteEntity::toSearchDocument)
+        return SearchMatcher.match(docs, query)
+    }
+
     suspend fun searchDay(query: SearchQuery, range: DayRange): List<SearchDocument> {
         val docs = segments.observeInRange(range.fromMs, range.toMs).first().map(SegmentEntity::toSearchDocument) +
             notes.observeInRange(range.fromMs, range.toMs).first().map(NoteEntity::toSearchDocument)

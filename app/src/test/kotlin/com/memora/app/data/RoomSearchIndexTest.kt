@@ -79,4 +79,16 @@ class RoomSearchIndexTest {
         val index = RoomSearchIndex(db.segmentDao(), db.noteDao())
         assertTrue(index.searchDay(SearchQueryParser.parse("   "), DayRange(0, 100)).isEmpty())
     }
+
+    @Test
+    fun `searchAll spans every day, newest first`() = runBlocking {
+        // dois "dias" bem distantes no tempo, ambos com "orçamento"
+        db.segmentDao().insertAll(listOf(segment("ontem", "orçamento de ontem", at = 1_000)))
+        db.noteDao().upsert(NoteEntity(id = "hoje", text = "orçamento de hoje", createdAtMs = 9_000_000))
+
+        val index = RoomSearchIndex(db.segmentDao(), db.noteDao())
+        val result = index.searchAll(SearchQueryParser.parse("orçamento"))
+
+        assertEquals(listOf("hoje", "ontem"), result.map { it.id }) // full-history, mais recente antes
+    }
 }
