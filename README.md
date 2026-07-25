@@ -155,6 +155,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:digest` (§5.5, agendamento): `DigestScheduler` decide, como política pura, quando gerar
     o digest do dia — prioriza o carregador entre 21h e 23h, gera de qualquer forma após 23h, e é
     idempotente por dia (RF-14/15/16). Sem relógio interno; tudo entra por parâmetro. Testado.
+  - ✅ `:core:digest` (§5.5, saída validada por schema): `DigestJson.parse` valida e sanitiza o JSON
+    do LLM local num `Digest` confiável — JSON malformado ou sem `summary` vira `null` (nada de
+    digest-lixo na tela), listas ausentes viram vazias, itens não-string descartados, `epochDay` vem
+    do chamador (nunca do modelo). Testado (org.json real sob Robolectric).
   - ✅ `:core:glossary` (§5.4, RF-33): `GlossaryEditor.learnCorrection` aprende com edições manuais —
     registra a grafia errada como variante da entrada canônica (cria a entrada se nova, sem duplicar,
     case-insensitive), e o `GlossaryCorrector` passa a corrigi-la sozinho. Puro e testado.
