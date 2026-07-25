@@ -167,10 +167,11 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:glossary` (§5.4, CRUD): `GlossaryRepository` (*seam*) + `GlossaryEntity`/`GlossaryDao`
     (banco na v3) persistem o glossário que alimenta os 3 pontos de injeção. `RoomGlossaryRepository`
     (`:app`) faz o round-trip real (variantes newline-separated). Testado (Room in-memory).
-  - ✅ Glossário no pipeline (§5.4, ponto 2 ligado): `TranscriptionQueue` ganhou um `postProcess`
+  - ✅ Glossário no pipeline (§5.4, os 3 pontos ligados): `TranscriptionQueue` ganhou um `postProcess`
     (default identidade) aplicado **antes** de persistir — logo, antes do descarte do áudio. Em `:app`,
-    `TranscriptResult.correctedBy(corrector)` liga o `GlossaryCorrector` ao pipeline sem que
-    `:core:transcription` conheça o `:core:glossary`. Testado (queue + correção).
+    `TranscriptResult.correctedBy` liga o `GlossaryCorrector` ao pipeline (ponto 2) e `GlossaryInjection`
+    deriva das entradas o `initial_prompt` do Whisper (ponto 1) e os termos do digest (ponto 3), sem
+    que `:core:transcription`/`:core:digest` conheçam `:core:glossary`. Testado.
   - ✅ `:feature:settings` (§5.5, RF-34): `MemoraSettings` reúne os parâmetros avançados
     (Whisper/VAD/speaker/auto-lock/digest) com defaults sensatos e `normalized()` que clampa cada
     campo ao intervalo válido (idempotente) — o pipeline nunca recebe ajuste fora de faixa; reset =
