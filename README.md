@@ -182,6 +182,9 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:common` (§6, export — RF-25): `MarkdownExporter` gera o Markdown de um dia com
     frontmatter YAML (Obsidian/PARA) — falas com speaker (menos `UNKNOWN`, regra 5), notas com tags,
     `places`/tags agregados no cabeçalho. Puro e determinístico (fuso por parâmetro). Testado.
+  - ✅ `:core:common` (timeline unificada): `DayItem` (fala/nota/gap) + `DayTimeline.merge` intercalam
+    as três fontes numa timeline cronológica única (ordenação estável, desempate determinístico).
+    Modelo comum para a tela unificada intercalar sem um feature depender de outro. Puro e testado.
 - 🚧 **Fase 4 (Inteligência avançada)** — primeira peça pura:
   - ✅ `:core:digest` (§7, weekly review): `WeeklyReview.aggregate` cruza os digests de vários dias
     num `WeeklyDigest` — temas por frequência (empate alfabético, top 10), decisões em ordem
