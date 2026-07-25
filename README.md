@@ -172,7 +172,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:feature:settings` (§5.5, RF-34): `MemoraSettings` reúne os parâmetros avançados
     (Whisper/VAD/speaker/auto-lock/digest) com defaults sensatos e `normalized()` que clampa cada
     campo ao intervalo válido (idempotente) — o pipeline nunca recebe ajuste fora de faixa; reset =
-    `DEFAULT`. Puro e testado.
+    `DEFAULT`. Puro e testado. Em `:app`, `toWhisperOptions`/`toVoiceProfile` derivam os parâmetros
+    concretos do pipeline a partir dos ajustes (sempre normalizados antes). Testado.
 - 🚧 **Fase 3 (Consulta)** — iniciada pela lógica pura, sem device:
   - ✅ `:feature:search` (§6, busca): `SearchQueryParser` interpreta a caixa (`#tag`, `@speaker`,
     termos livres) e `SearchMatcher` é o matcher de referência — casa todos os termos (substring
