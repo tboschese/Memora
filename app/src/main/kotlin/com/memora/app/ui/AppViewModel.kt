@@ -73,4 +73,10 @@ class AppViewModel @Inject constructor(
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()
+
+    /** App foi para segundo plano: marca o instante para o auto-lock contar a partir daqui. */
+    fun onBackground() = coordinator.onActivity()
+
+    /** App voltou ao primeiro plano: aplica o timeout — tranca se ficou tempo demais fora. */
+    fun onForeground() = coordinator.refresh()
 }
