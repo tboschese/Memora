@@ -79,7 +79,9 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(items, key = { it.itemKey() }) { item -> DayItemRow(item) }
+            items(items, key = { it.itemKey() }) { item ->
+                DayItemRow(item, onDelete = home::deleteNote)
+            }
         }
 
         Row(
@@ -90,7 +92,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             OutlinedTextField(
                 value = noteText,
                 onValueChange = { noteText = it },
-                label = { Text("Nova anotação") },
+                label = { Text("Nova anotação (use #tag)") },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
@@ -108,7 +110,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DayItemRow(item: DayItem) {
+private fun DayItemRow(item: DayItem, onDelete: (String) -> Unit) {
     val time = TIME.format(Instant.ofEpochMilli(item.atMs).atZone(ZoneId.systemDefault()))
     val text = when (item) {
         is DayItem.Speech -> buildString {
@@ -119,9 +121,17 @@ private fun DayItemRow(item: DayItem) {
             if (item.tags.isNotEmpty()) "  " + item.tags.joinToString(" ") { "#$it" } else ""
         is DayItem.Gap -> "⋯ trecho sem áudio"
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(time, style = MaterialTheme.typography.labelLarge)
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(time, style = MaterialTheme.typography.labelLarge)
+            Text(text, style = MaterialTheme.typography.bodyMedium)
+        }
+        if (item is DayItem.UserNote) {
+            TextButton(onClick = { onDelete(item.id) }) { Text("✕") }
+        }
     }
 }
 

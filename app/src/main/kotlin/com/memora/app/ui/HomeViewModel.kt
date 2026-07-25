@@ -6,6 +6,7 @@ import com.memora.app.data.RoomUnifiedTimeline
 import com.memora.core.common.time.DayRange
 import com.memora.core.common.timeline.DayItem
 import com.memora.feature.notes.Note
+import com.memora.feature.notes.NoteInput
 import com.memora.feature.notes.NotesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,11 +38,17 @@ class HomeViewModel(
             initialValue = emptyList(),
         )
 
-    fun addNote(text: String) {
-        if (text.isBlank()) return
+    /** Cria uma nota do texto cru, extraindo `#tags` (RF-08). Ignora entrada vazia. */
+    fun addNote(raw: String) {
+        val draft = NoteInput.parse(raw)
+        if (draft.isBlank) return
         viewModelScope.launch {
-            notes.add(Note(id = newId(), text = text.trim(), createdAtMs = now()))
+            notes.add(Note(id = newId(), text = draft.text, createdAtMs = now(), tags = draft.tags))
         }
+    }
+
+    fun deleteNote(id: String) {
+        viewModelScope.launch { notes.delete(id) }
     }
 
     private companion object {
