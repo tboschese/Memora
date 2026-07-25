@@ -179,6 +179,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     termos livres) e `SearchMatcher` é o matcher de referência — casa todos os termos (substring
     case-insensitive) + todas as tags + o speaker, em ordem cronológica decrescente; query vazia não
     casa nada. Puro e testado; o FTS do Room é aceleração posterior sobre este mesmo contrato.
+    Em `:app`, `RoomSearchIndex` projeta falas e notas do dia em `SearchDocument` e aplica o matcher.
+    Testado (Room in-memory).
   - ✅ `:core:common` (§6, export — RF-25): `MarkdownExporter` gera o Markdown de um dia com
     frontmatter YAML (Obsidian/PARA) — falas com speaker (menos `UNKNOWN`, regra 5), notas com tags,
     `places`/tags agregados no cabeçalho. Puro e determinístico (fuso por parâmetro). Testado.
