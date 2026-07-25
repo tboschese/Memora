@@ -127,7 +127,8 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     busca as fontes (`DigestSources`, *seam*), delega a síntese ao `DigestProvider` (fake nos testes,
     LLM local depois) e expõe `Idle/Generating/Ready/Empty/Failed`. Dia sem falas não chama o modelo;
     falha do provider degrada para `Failed` sem derrubar a tela. `RoomDigestSources` (`:app`) lê o
-    mesmo dia que a timeline. Testado (fakes + Room in-memory).
+    mesmo dia que a timeline — intercalando **falas e anotações** (a nota entra como fala do dono,
+    `SELF`), pois o resumo considera o que foi dito e o que o usuário anotou. Testado (fakes + Room).
   - ✅ `:core:glossary` (§5.4, ponto 1 da injeção): `GlossaryPrompt` monta o `initial_prompt` do
     Whisper a partir das grafias canônicas, dentro de um orçamento de ~224 tokens e priorizando os
     mais frequentes (pula termo que não cabe, dedup case-insensitive). A contagem de tokens é um

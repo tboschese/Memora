@@ -44,7 +44,7 @@ class RoomDigestSourcesTest {
 
     @Test
     fun `returns the day's segments as ordered digest sources`() = runBlocking {
-        val sources = RoomDigestSources(db.segmentDao())
+        val sources = RoomDigestSources(db.segmentDao(), db.noteDao())
         db.segmentDao().insertAll(
             listOf(
                 segment("late", startMs = 180, speaker = "SELF"),
@@ -60,8 +60,24 @@ class RoomDigestSourcesTest {
     }
 
     @Test
+    fun `interleaves notes as SELF sources with speech, ordered by time`() = runBlocking {
+        val sources = RoomDigestSources(db.segmentDao(), db.noteDao())
+        db.segmentDao().insertAll(listOf(segment("fala", startMs = 150, speaker = "OTHER")))
+        db.noteDao().upsert(
+            com.memora.core.db.entity.NoteEntity(id = "nota", text = "lembrete", createdAtMs = 130),
+        )
+
+        val result = sources.forDay(DayRange(fromMs = 100, toMs = 200))
+
+        assertEquals(listOf(130L, 150L), result.map { it.timeMs })         // nota antes da fala
+        assertEquals(SpeakerLabel.SELF, result.first().speaker)            // nota = SELF
+        assertEquals("lembrete", result.first().text)
+        assertEquals(SpeakerLabel.OTHER, result.last().speaker)
+    }
+
+    @Test
     fun `empty range yields no sources`() = runBlocking {
-        val sources = RoomDigestSources(db.segmentDao())
+        val sources = RoomDigestSources(db.segmentDao(), db.noteDao())
         assertEquals(emptyList<Any>(), sources.forDay(DayRange(0, 100)))
     }
 }
