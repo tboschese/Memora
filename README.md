@@ -159,6 +159,10 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
   - ✅ `:core:glossary` (§5.4, CRUD): `GlossaryRepository` (*seam*) + `GlossaryEntity`/`GlossaryDao`
     (banco na v3) persistem o glossário que alimenta os 3 pontos de injeção. `RoomGlossaryRepository`
     (`:app`) faz o round-trip real (variantes newline-separated). Testado (Room in-memory).
+  - ✅ Glossário no pipeline (§5.4, ponto 2 ligado): `TranscriptionQueue` ganhou um `postProcess`
+    (default identidade) aplicado **antes** de persistir — logo, antes do descarte do áudio. Em `:app`,
+    `TranscriptResult.correctedBy(corrector)` liga o `GlossaryCorrector` ao pipeline sem que
+    `:core:transcription` conheça o `:core:glossary`. Testado (queue + correção).
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM

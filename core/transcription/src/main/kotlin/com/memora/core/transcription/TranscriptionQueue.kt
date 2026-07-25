@@ -38,6 +38,12 @@ class TranscriptionQueue(
     private val maxQueueBytes: Long = DEFAULT_MAX_QUEUE_BYTES,
     /** Tentativas de transcrição por chunk antes de registrar gap e desistir. */
     private val maxAttempts: Int = 3,
+    /**
+     * Pós-processamento do resultado antes de persistir — o ponto onde a correção pós-transcrição do
+     * glossário entra (aplicada em `:app`, que conhece ambos os módulos). Default: identidade. Roda
+     * ANTES de persistir e, portanto, antes de o áudio ser destruído.
+     */
+    private val postProcess: (TranscriptResult) -> TranscriptResult = { it },
 ) {
     /** Fila FIFO de chunks pendentes (o mais antigo primeiro). Protegida por [mutex]. */
     private val pending = ArrayDeque<PendingChunk>()
@@ -97,8 +103,9 @@ class TranscriptionQueue(
             return onTranscribeFailure(chunk, t)
         }
 
-        // Texto primeiro: só destrói o áudio depois de persistir (regra 2).
-        segments.persist(result)
+        // Texto primeiro: só destrói o áudio depois de persistir (regra 2). O glossário corrige
+        // o texto aqui, antes da persistência — e portanto antes do descarte do áudio.
+        segments.persist(postProcess(result))
         audio.destroy(chunk.chunkId)
         removeLocked(chunk.chunkId)
         SafeLog.i(

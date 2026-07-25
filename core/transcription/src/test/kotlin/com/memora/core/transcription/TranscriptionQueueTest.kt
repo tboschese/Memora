@@ -216,4 +216,30 @@ class TranscriptionQueueTest {
         assertEquals(50, gaps.gaps.single().toMs)
         assertFalse(done > 0)
     }
+
+    @Test
+    fun `postProcess transforma o resultado antes de persistir`() = runTest {
+        val audio = FakeAudio().apply { put("a", 1_000) }
+        // Provider que devolve um segmento com texto "cru".
+        val provider = object : TranscriptionProvider {
+            override suspend fun transcribe(chunk: AudioChunk, options: WhisperOptions) =
+                TranscriptResult(chunk.id, "pt", listOf(TranscriptSegment("cru", 0, 10, 0.9f)))
+        }
+        var persistedText: String? = null
+        val sink = object : SegmentSink {
+            override suspend fun persist(result: TranscriptResult) {
+                persistedText = result.segments.single().text
+            }
+        }
+        val queue = TranscriptionQueue(
+            audio, provider, sink, RecordingGaps(),
+            postProcess = { r -> r.copy(segments = r.segments.map { it.copy(text = it.text.uppercase()) }) },
+        )
+
+        queue.enqueue(chunk("a", bytes = 10))
+        queue.drain(DrainMode.CONTINUOUS, DeviceState(charging = true, idle = false))
+
+        assertEquals("CRU", persistedText) // o texto persistido passou pelo postProcess
+        assertEquals(listOf("a"), audio.destroyed) // e o áudio foi destruído depois
+    }
 }
