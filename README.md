@@ -173,6 +173,11 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     (Whisper/VAD/speaker/auto-lock/digest) com defaults sensatos e `normalized()` que clampa cada
     campo ao intervalo válido (idempotente) — o pipeline nunca recebe ajuste fora de faixa; reset =
     `DEFAULT`. Puro e testado.
+- 🚧 **Fase 3 (Consulta)** — iniciada pela lógica pura, sem device:
+  - ✅ `:feature:search` (§6, busca): `SearchQueryParser` interpreta a caixa (`#tag`, `@speaker`,
+    termos livres) e `SearchMatcher` é o matcher de referência — casa todos os termos (substring
+    case-insensitive) + todas as tags + o speaker, em ordem cronológica decrescente; query vazia não
+    casa nada. Puro e testado; o FTS do Room é aceleração posterior sobre este mesmo contrato.
 
 O que hoje é substituível por implementações reais sem tocar no resto: o `TranscriptionProvider`
 (fake → whisper.cpp), o `VoiceActivityDetector` (energia → Silero/ONNX), a fonte de PCM
