@@ -55,4 +55,28 @@ class HistoryMarkdownTest {
         )
         assertTrue(md.indexOf("cedo") < md.indexOf("tarde"))
     }
+
+    @Test
+    fun `export then import round-trips text, tags, done and time`() {
+        val original = listOf(
+            Note("a", "comprar pão", at(day1, 8, 30), tags = listOf("tarefa"), done = true),
+            Note("b", "ideia legal", at(day2, 14, 0), tags = listOf("ideia")),
+            Note("c", "sem tags", at(day2, 15, 0)),
+        )
+        val md = exportHistoryMarkdown(original, zone)
+
+        var n = 0
+        val parsed = parseHistoryMarkdown(md, zone) { "id${n++}" }
+            .sortedBy { it.createdAtMs }
+
+        assertEquals(original.map { Triple(it.text, it.tags, it.done) to it.createdAtMs },
+            parsed.map { Triple(it.text, it.tags, it.done) to it.createdAtMs })
+    }
+
+    @Test
+    fun `garbage lines are ignored`() {
+        val md = "# título\n\nlixo\n## 2026-07-24\n- linha errada\n- **08:00** válida\n"
+        val parsed = parseHistoryMarkdown(md, zone) { "id" }
+        assertEquals(listOf("válida"), parsed.map { it.text })
+    }
 }

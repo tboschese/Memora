@@ -1,6 +1,9 @@
 package com.memora.app.ui.screens
 
 import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,11 +41,25 @@ fun SettingsContent(
     viewModel: SettingsViewModel,
     onOpenGlossary: () -> Unit,
     onExportHistory: suspend () -> String,
+    onImportHistory: suspend (String) -> Int,
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val markdown = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()?.use { it.readText() }
+                if (markdown != null) {
+                    val count = onImportHistory(markdown)
+                    Toast.makeText(context, "$count anotações importadas", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     var autoLockMin by remember(settings) { mutableStateOf((settings.autoLockTimeoutMs / 60_000).toString()) }
     var digestHour by remember(settings) { mutableStateOf(settings.digestTargetHour.toString()) }
@@ -106,6 +123,10 @@ fun SettingsContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Exportar todo o histórico")
+        }
+
+        OutlinedButton(onClick = { importLauncher.launch("text/*") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Importar de Markdown")
         }
 
         Text(

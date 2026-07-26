@@ -9,6 +9,8 @@ import com.memora.app.data.RoomSearchIndex
 import com.memora.app.data.RoomUnifiedTimeline
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.app.data.exportHistoryMarkdown
+import com.memora.app.data.parseHistoryMarkdown
+import com.memora.app.data.toEntity
 import com.memora.app.data.toNote
 import java.time.ZoneId
 import com.memora.app.session.SessionCoordinator
@@ -96,6 +98,14 @@ class AppViewModel @Inject constructor(
     /** Gera o Markdown de todo o histórico de anotações (backup). Chamado da UI numa coroutine. */
     suspend fun exportHistory(zone: ZoneId = ZoneId.systemDefault()): String =
         exportHistoryMarkdown(holder.database.noteDao().snapshotAll().map { it.toNote() }, zone)
+
+    /** Importa anotações de um Markdown (restore/merge). Retorna quantas foram gravadas. */
+    suspend fun importHistory(markdown: String, zone: ZoneId = ZoneId.systemDefault()): Int {
+        val notes = parseHistoryMarkdown(markdown, zone) { UUID.randomUUID().toString() }
+        val dao = holder.database.noteDao()
+        notes.forEach { dao.upsert(it.toEntity()) }
+        return notes.size
+    }
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()

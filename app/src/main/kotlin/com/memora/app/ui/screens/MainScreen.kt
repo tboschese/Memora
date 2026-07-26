@@ -124,6 +124,7 @@ fun MainScreen(appViewModel: AppViewModel) {
                 settings,
                 onOpenGlossary = { showGlossary = true },
                 onExportHistory = { appViewModel.exportHistory() },
+                onImportHistory = { appViewModel.importHistory(it) },
                 modifier = contentModifier,
             )
         }
