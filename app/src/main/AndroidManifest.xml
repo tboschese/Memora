@@ -3,16 +3,15 @@
 
     <!--
       Local-first: o app funciona 100% offline. Rede é PERMITIDA, mas só para features
-      opt-in (ex.: backup no Drive, modelos pagos). Adicione INTERNET apenas quando uma
-      dessas features existir. A task `reportNetwork<Variant>` lista as permissões de rede
-      no build (informativo) para telemetria acidental não passar despercebida.
-
-      Permissões reais serão adicionadas por fase, conforme necessário:
-        RECORD_AUDIO, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MICROPHONE,
-        POST_NOTIFICATIONS, ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION,
-        USE_BIOMETRIC, RECEIVE_BOOT_COMPLETED,
-        INTERNET (quando houver sync/modelos remotos).
+      opt-in (ex.: backup no Drive, modelos pagos). NENHUMA permissão de rede é declarada —
+      a task `reportNetwork<Variant>` confirma isso no build. Captura de áudio não usa rede.
     -->
+
+    <!-- Captura de áudio (Fase 1): microfone + serviço em primeiro plano. Nada de rede. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".MemoraApplication"
@@ -33,6 +32,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".capture.CaptureService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
     </application>
 
 </manifest>

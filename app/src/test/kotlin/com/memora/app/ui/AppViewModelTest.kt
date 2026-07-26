@@ -49,6 +49,13 @@ class AppViewModelTest {
         override fun close() { opened = false }
     }
 
+    private class FakeCapture : com.memora.feature.today.CaptureController {
+        private val state = kotlinx.coroutines.flow.MutableStateFlow(false)
+        override val isRecording = state
+        override fun start() { state.value = true }
+        override fun stop() { state.value = false }
+    }
+
     private fun buildViewModel(configured: Boolean): AppViewModel {
         val store = InMemorySecurityStore()
         val vault = PinVault(store, iterations = 1_000)
@@ -62,7 +69,7 @@ class AppViewModelTest {
         val coordinator = SessionCoordinator(gate, autoLock, clock = { 0L })
         val context = ApplicationProvider.getApplicationContext<Application>()
         val holder = SessionDatabaseHolder(context)
-        return AppViewModel(gate, coordinator, holder, PrefsSettingsRepository(context))
+        return AppViewModel(gate, coordinator, holder, PrefsSettingsRepository(context), FakeCapture())
     }
 
     @Test

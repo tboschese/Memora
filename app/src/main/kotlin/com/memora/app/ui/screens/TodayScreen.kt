@@ -1,6 +1,10 @@
 package com.memora.app.ui.screens
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,10 +54,20 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val items by home.items.collectAsState()
     val date by home.date.collectAsState()
     val isToday by home.isToday.collectAsState()
+    val isRecording by home.isRecording.collectAsState()
     var noteText by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<DayItem.UserNote?>(null) }
     var deleting by remember { mutableStateOf<DayItem.UserNote?>(null) }
     val context = LocalContext.current
+
+    // Ao conceder o microfone, inicia a captura; sem ele, nada acontece.
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        if (grants[Manifest.permission.RECORD_AUDIO] == true) home.toggleRecording()
+    }
+    val recordPermissions = buildList {
+        add(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+    }.toTypedArray()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(
@@ -79,6 +93,13 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             ) {
                 Text("Exportar")
             }
+        }
+
+        Button(
+            onClick = { if (isRecording) home.toggleRecording() else micPermission.launch(recordPermissions) },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) {
+            Text(if (isRecording) "■ Parar gravação" else "● Gravar áudio")
         }
 
         Row(

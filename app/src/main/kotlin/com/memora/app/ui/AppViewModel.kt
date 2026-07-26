@@ -30,6 +30,7 @@ import com.memora.feature.onboarding.SetupStep
 import com.memora.feature.onboarding.UnlockViewModel
 import com.memora.feature.settings.SettingsRepository
 import com.memora.feature.settings.SettingsViewModel
+import com.memora.feature.today.CaptureController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -47,6 +48,7 @@ class AppViewModel @Inject constructor(
     private val coordinator: SessionCoordinator,
     private val holder: SessionDatabaseHolder,
     private val settingsRepository: SettingsRepository,
+    private val captureController: CaptureController,
 ) : ViewModel() {
 
     val onboarding = OnboardingViewModel(gate)
@@ -75,6 +77,7 @@ class AppViewModel @Inject constructor(
         return HomeViewModel(
             timeline = RoomUnifiedTimeline(db.segmentDao(), db.noteDao(), db.timelineGapDao()),
             notes = RoomNotesRepository(db.noteDao()),
+            capture = captureController,
             newId = { UUID.randomUUID().toString() },
             now = { System.currentTimeMillis() },
         )

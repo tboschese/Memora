@@ -1,5 +1,6 @@
 package com.memora.app.di
 
+import com.memora.app.capture.ServiceCaptureController
 import com.memora.app.data.EncryptedSession
 import com.memora.app.data.PrefsSettingsRepository
 import com.memora.app.data.SecurityPinGate
@@ -9,6 +10,7 @@ import com.memora.core.security.AutoLockController
 import com.memora.core.security.PinVault
 import com.memora.feature.onboarding.PinGate
 import com.memora.feature.settings.SettingsRepository
+import com.memora.feature.today.CaptureController
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,4 +48,8 @@ object AppModule {
     @Provides
     @Singleton
     fun settingsRepository(repository: PrefsSettingsRepository): SettingsRepository = repository
+
+    @Provides
+    @Singleton
+    fun captureController(controller: ServiceCaptureController): CaptureController = controller
 }

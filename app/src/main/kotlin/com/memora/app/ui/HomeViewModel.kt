@@ -8,6 +8,7 @@ import com.memora.core.common.timeline.DayItem
 import com.memora.feature.notes.Note
 import com.memora.feature.notes.NoteInput
 import com.memora.feature.notes.NotesRepository
+import com.memora.feature.today.CaptureController
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +31,7 @@ import java.time.ZoneId
 class HomeViewModel(
     private val timeline: RoomUnifiedTimeline,
     private val notes: NotesRepository,
+    private val capture: CaptureController,
     private val newId: () -> String,
     private val now: () -> Long,
     clock: Instant = Instant.now(),
@@ -37,6 +39,9 @@ class HomeViewModel(
 ) : ViewModel() {
 
     private val today: LocalDate = clock.atZone(zone).toLocalDate()
+
+    /** `true` enquanto a captura de áudio está ativa. */
+    val isRecording: StateFlow<Boolean> = capture.isRecording
 
     private val _date = MutableStateFlow(today)
     val date: StateFlow<LocalDate> = _date.asStateFlow()
@@ -89,6 +94,11 @@ class HomeViewModel(
 
     fun deleteNote(id: String) {
         viewModelScope.launch { notes.delete(id) }
+    }
+
+    /** Liga/desliga a captura de áudio (a permissão de microfone é pedida pela tela antes). */
+    fun toggleRecording() {
+        if (capture.isRecording.value) capture.stop() else capture.start()
     }
 
     private companion object {
