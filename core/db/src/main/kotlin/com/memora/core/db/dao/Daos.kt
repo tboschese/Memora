@@ -72,6 +72,10 @@ interface NoteDao {
     @Query("SELECT * FROM note")
     suspend fun snapshotAll(): List<NoteEntity>
 
+    /** Todas as notas, reativo (usado pela visão de tarefas). */
+    @Query("SELECT * FROM note ORDER BY createdAtMs DESC")
+    fun observeAll(): Flow<List<NoteEntity>>
+
     @Query("UPDATE note SET done = :done WHERE id = :id")
     suspend fun setDone(id: String, done: Boolean)
 
