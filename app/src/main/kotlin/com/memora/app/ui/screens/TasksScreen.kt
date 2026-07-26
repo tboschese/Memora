@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +40,7 @@ private val WHEN: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM")
 fun TasksContent(viewModel: TasksViewModel, modifier: Modifier = Modifier) {
     val tasks by viewModel.tasks.collectAsState()
     var hideDone by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<Note?>(null) }
     val shown = if (hideDone) tasks.filterNot { it.done } else tasks
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -59,13 +62,30 @@ fun TasksContent(viewModel: TasksViewModel, modifier: Modifier = Modifier) {
         }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(shown, key = Note::id) { task -> TaskRow(task, viewModel::setDone) }
+            items(shown, key = Note::id) { task ->
+                TaskRow(task, viewModel::setDone, onDelete = { deleting = task })
+            }
         }
+    }
+
+    deleting?.let { task ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Apagar tarefa?") },
+            text = { Text(task.text) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(task.id)
+                    deleting = null
+                }) { Text("Apagar") }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } },
+        )
     }
 }
 
 @Composable
-private fun TaskRow(task: Note, onToggle: (String, Boolean) -> Unit) {
+private fun TaskRow(task: Note, onToggle: (String, Boolean) -> Unit, onDelete: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = task.done, onCheckedChange = { onToggle(task.id, it) })
         Text(
@@ -78,5 +98,6 @@ private fun TaskRow(task: Note, onToggle: (String, Boolean) -> Unit) {
             WHEN.format(Instant.ofEpochMilli(task.createdAtMs).atZone(ZoneId.systemDefault())),
             style = MaterialTheme.typography.labelSmall,
         )
+        TextButton(onClick = onDelete) { Text("✕") }
     }
 }

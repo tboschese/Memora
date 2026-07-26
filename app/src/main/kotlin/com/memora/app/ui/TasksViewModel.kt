@@ -25,4 +25,8 @@ class TasksViewModel(private val notes: NotesRepository) : ViewModel() {
     fun setDone(id: String, done: Boolean) {
         viewModelScope.launch { notes.setDone(id, done) }
     }
+
+    fun delete(id: String) {
+        viewModelScope.launch { notes.delete(id) }
+    }
 }
