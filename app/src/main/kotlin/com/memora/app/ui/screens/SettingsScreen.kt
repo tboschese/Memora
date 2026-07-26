@@ -51,12 +51,13 @@ fun SettingsContent(
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             scope.launch {
-                val markdown = context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader()?.use { it.readText() }
-                if (markdown != null) {
-                    val count = onImportHistory(markdown)
-                    Toast.makeText(context, "$count anotações importadas", Toast.LENGTH_SHORT).show()
-                }
+                val message = runCatching {
+                    val markdown = context.contentResolver.openInputStream(uri)
+                        ?.bufferedReader()?.use { it.readText() }
+                        ?: return@runCatching "Não foi possível ler o arquivo."
+                    "${onImportHistory(markdown)} anotações importadas"
+                }.getOrElse { "Falha ao importar." }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
