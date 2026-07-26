@@ -23,7 +23,7 @@ import java.time.ZoneId
 class DigestViewModel(
     private val sources: DigestSources,
     private val provider: DigestProvider,
-    private val glossaryTerms: List<String> = emptyList(),
+    private val glossaryTerms: suspend () -> List<String> = { emptyList() },
     now: Instant = Instant.now(),
     zone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
@@ -44,7 +44,7 @@ class DigestViewModel(
                 if (daySources.isEmpty()) {
                     DigestUiState.Empty
                 } else {
-                    val digest = provider.generate(DigestInput(epochDay, daySources, glossaryTerms))
+                    val digest = provider.generate(DigestInput(epochDay, daySources, glossaryTerms()))
                     DigestUiState.Ready(digest)
                 }
             } catch (e: CancellationException) {

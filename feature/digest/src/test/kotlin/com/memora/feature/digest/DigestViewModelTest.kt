@@ -37,7 +37,7 @@ class DigestViewModelTest {
     ) = DigestViewModel(
         sources = sources,
         provider = provider,
-        glossaryTerms = glossary,
+        glossaryTerms = { glossary },
         // 1970-01-11 UTC → epochDay 10
         now = Instant.ofEpochMilli(10L * 24 * 60 * 60 * 1000),
         zone = ZoneOffset.UTC,

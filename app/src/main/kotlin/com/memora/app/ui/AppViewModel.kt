@@ -15,8 +15,10 @@ import com.memora.app.data.toNote
 import java.time.ZoneId
 import com.memora.app.session.SessionCoordinator
 import com.memora.app.session.SessionPhase
+import com.memora.app.data.GlossaryInjection
 import com.memora.core.digest.HeuristicDigestProvider
 import com.memora.feature.digest.DigestViewModel
+import kotlinx.coroutines.flow.first
 import com.memora.feature.onboarding.OnboardingViewModel
 import com.memora.feature.onboarding.PinGate
 import com.memora.feature.onboarding.SetupStep
@@ -76,6 +78,7 @@ class AppViewModel @Inject constructor(
         return DigestViewModel(
             sources = RoomDigestSources(db.segmentDao(), db.noteDao()),
             provider = HeuristicDigestProvider(),
+            glossaryTerms = { GlossaryInjection.digestTerms(RoomGlossaryRepository(db.glossaryDao()).observeAll().first()) },
         )
     }
 
