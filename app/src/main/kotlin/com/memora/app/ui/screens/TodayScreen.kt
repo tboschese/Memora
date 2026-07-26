@@ -47,6 +47,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
     val isToday by home.isToday.collectAsState()
     var noteText by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<DayItem.UserNote?>(null) }
+    var deleting by remember { mutableStateOf<DayItem.UserNote?>(null) }
     val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -97,7 +98,7 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             items(items, key = { it.itemKey() }) { item ->
                 DayItemRow(
                     item,
-                    onDelete = home::deleteNote,
+                    onDelete = { deleting = it },
                     onEdit = { editing = it },
                     onToggleDone = home::setDone,
                 )
@@ -139,6 +140,21 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             },
         )
     }
+
+    deleting?.let { note ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Apagar anotação?") },
+            text = { Text(note.text) },
+            confirmButton = {
+                TextButton(onClick = {
+                    home.deleteNote(note.id)
+                    deleting = null
+                }) { Text("Apagar") }
+            },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } },
+        )
+    }
 }
 
 @Composable
@@ -174,7 +190,7 @@ private fun EditNoteDialog(
 @Composable
 private fun DayItemRow(
     item: DayItem,
-    onDelete: (String) -> Unit,
+    onDelete: (DayItem.UserNote) -> Unit,
     onEdit: (DayItem.UserNote) -> Unit,
     onToggleDone: (String, Boolean) -> Unit,
 ) {
@@ -210,7 +226,7 @@ private fun DayItemRow(
         }
         if (item is DayItem.UserNote) {
             TextButton(onClick = { onEdit(item) }) { Text("✎") }
-            TextButton(onClick = { onDelete(item.id) }) { Text("✕") }
+            TextButton(onClick = { onDelete(item) }) { Text("✕") }
         }
     }
 }
