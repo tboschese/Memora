@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.memora.app.ui.TasksViewModel
-import com.memora.core.common.timeline.DayItem
+import com.memora.feature.notes.Note
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -44,13 +44,13 @@ fun TasksContent(viewModel: TasksViewModel, modifier: Modifier = Modifier) {
         )
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(tasks, key = { it.id }) { task -> TaskRow(task, viewModel::setDone) }
+            items(tasks, key = Note::id) { task -> TaskRow(task, viewModel::setDone) }
         }
     }
 }
 
 @Composable
-private fun TaskRow(task: DayItem.UserNote, onToggle: (String, Boolean) -> Unit) {
+private fun TaskRow(task: Note, onToggle: (String, Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = task.done, onCheckedChange = { onToggle(task.id, it) })
         Text(
@@ -60,7 +60,7 @@ private fun TaskRow(task: DayItem.UserNote, onToggle: (String, Boolean) -> Unit)
             modifier = Modifier.weight(1f),
         )
         Text(
-            WHEN.format(Instant.ofEpochMilli(task.atMs).atZone(ZoneId.systemDefault())),
+            WHEN.format(Instant.ofEpochMilli(task.createdAtMs).atZone(ZoneId.systemDefault())),
             style = MaterialTheme.typography.labelSmall,
         )
     }

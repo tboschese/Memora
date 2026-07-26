@@ -88,7 +88,7 @@ class AppViewModel @Inject constructor(
     )
 
     /** ViewModel da visão de tarefas (todas as `#tarefa`, de qualquer dia). */
-    fun createTasksViewModel(): TasksViewModel = TasksViewModel(holder.database.noteDao())
+    fun createTasksViewModel(): TasksViewModel = TasksViewModel(RoomNotesRepository(holder.database.noteDao()))
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()

@@ -18,6 +18,9 @@ class RoomNotesRepository(private val dao: NoteDao) : NotesRepository {
     override fun observeInRange(range: DayRange): Flow<List<Note>> =
         dao.observeInRange(range.fromMs, range.toMs).map { rows -> rows.map(NoteEntity::toNote) }
 
+    override fun observeAll(): Flow<List<Note>> =
+        dao.observeAll().map { rows -> rows.map(NoteEntity::toNote) }
+
     override suspend fun add(note: Note) = dao.upsert(note.toEntity())
 
     override suspend fun setDone(id: String, done: Boolean) = dao.setDone(id, done)

@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface NotesRepository {
     fun observeInRange(range: DayRange): Flow<List<Note>>
 
+    /** Todas as notas (para visões que cruzam dias, como a de tarefas). */
+    fun observeAll(): Flow<List<Note>>
+
     suspend fun add(note: Note)
 
     suspend fun setDone(id: String, done: Boolean)

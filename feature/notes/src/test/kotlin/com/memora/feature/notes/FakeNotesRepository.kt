@@ -19,6 +19,8 @@ class FakeNotesRepository(
                 .sortedBy { it.createdAtMs }
         }
 
+    override fun observeAll(): Flow<List<Note>> = store
+
     override suspend fun add(note: Note) {
         store.value = store.value.filterNot { it.id == note.id } + note
     }
