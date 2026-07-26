@@ -5,8 +5,10 @@ contínua, transcrição on-device e um digest diário, **100% offline por padr�
 é guardado; só texto persiste, cifrado no device. A nuvem é **opcional e opt-in** (backup de
 anotações, modelos pagos), nunca requisito.
 
-> Status: em desenvolvimento. **M0 (esqueleto) e os contratos (§2) completos**; **Fase 1 (MVP:
-> gravador + transcrição)** em andamento. Ver [Status atual](#status-atual).
+> Status: em desenvolvimento. **App já navegável e usável** como diário/gerenciador de tarefas
+> local-first cifrado (PIN → anotações, `#tarefa`, digest, busca, export), tudo offline. Falta a
+> **captura de áudio + transcrição** (`AudioRecord`/Foreground Service + whisper.cpp) para o dia
+> virar texto sozinho. Ver [Status atual](#status-atual).
 
 ---
 
@@ -119,15 +121,22 @@ Detalhes em [`docs/setup-e-build.md`](docs/setup-e-build.md).
     auto-lock e expõe a fase da sessão (`ONBOARDING`/`LOCKED`/`UNLOCKED`) como `StateFlow`. Máquina de
     estados pura (relógio por parâmetro), reagindo a autenticou/atividade/timeout/lock. Governa só a
     leitura — a captura segue em background (regra 4). Testado sem device.
-  - ✅ **UI ligada e app navegável**: `MemoraApp` navega por `SessionPhase` — onboarding de PIN,
-    desbloqueio e as telas principais (Compose, consumindo os ViewModels já testados). A `EncryptedSession`
-    real (`SessionDatabaseHolder`) abre o `MemoraDatabase` cifrado no unlock via `buildEncryptedDatabase`,
-    e o `AppModule` (Hilt) costura `PinGate`/`SessionCoordinator`/sessão. Pós-unlock, uma barra de
-    navegação com 3 abas: **Hoje** (timeline unificada + escrever anotações), **Digest** (gera o resumo
-    do dia — provider fake até o LLM local) e **Buscar** (`#tag`/`@quem`/termos sobre o dia). O app já
-    é usável de ponta a ponta (PIN → ler/escrever/resumir/buscar o dia) sem captura de áudio. Gera APK.
+  - ✅ **App navegável e usável de ponta a ponta** (Compose, consumindo os ViewModels testados).
+    `MemoraApp` navega por `SessionPhase`: onboarding de PIN → desbloqueio → app. A `EncryptedSession`
+    real (`SessionDatabaseHolder`) abre o `MemoraDatabase` cifrado no unlock (`buildEncryptedDatabase`);
+    o `AppModule` (Hilt) costura `PinGate`/`SessionCoordinator`/sessão; auto-lock por inatividade
+    (ciclo de vida) + trancar manual. Pós-unlock, 5 abas:
+    - **Hoje** — diário navegável no tempo (‹ dia ›): escrever anotações com `#tags`, marcar `#tarefa`
+      como concluída (checkbox + risco), editar, apagar, exportar o dia em Markdown (share);
+    - **Tarefas** — todas as `#tarefa` de qualquer dia, pendentes primeiro, com contador;
+    - **Digest** — resumo do dia (heurística por tags: tarefas pendentes → itens de ação, decisões,
+      temas), gerado automaticamente; troca pelo LLM local depois;
+    - **Buscar** — `#tag`/`@quem`/termos sobre **todo o histórico**, com data/hora;
+    - **Ajustes** — auto-lock (efetivo) e hora do digest (persistidos) + gerência do glossário.
+
+    Tudo offline e cifrado; nenhuma permissão de rede. Gera APK (`:app:assembleDebug`).
   - ⏭️ Captura real (`AudioRecord` + Foreground Service) e whisper.cpp (JNI) — o que falta para o dia
-    virar texto sozinho.
+    virar texto sozinho. Até lá, o app é um diário/gerenciador de tarefas local-first cifrado.
 - 🚧 **Fase 2 (Anotações + Digest)** — iniciada pela leitura, sem device:
   - ✅ `:feature:digest` (§5.5): `DigestViewModel` gera, sob demanda, o resumo estruturado do dia —
     busca as fontes (`DigestSources`, *seam*), delega a síntese ao `DigestProvider` (fake nos testes,
