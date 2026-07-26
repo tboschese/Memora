@@ -69,7 +69,9 @@ fun MainScreen(appViewModel: AppViewModel) {
     val allTasks by tasks.tasks.collectAsState()
     val pendingTasks = allTasks.count { !it.done }
 
-    var tab by remember { mutableStateOf(MainTab.TODAY) }
+    var tab by remember {
+        mutableStateOf(MainTab.entries.getOrElse(appViewModel.selectedTabIndex) { MainTab.TODAY })
+    }
     var showGlossary by remember { mutableStateOf(false) }
 
     if (showGlossary) {
@@ -95,7 +97,10 @@ fun MainScreen(appViewModel: AppViewModel) {
                 MainTab.entries.forEach { t ->
                     NavigationBarItem(
                         selected = tab == t,
-                        onClick = { tab = t },
+                        onClick = {
+                            tab = t
+                            appViewModel.selectedTabIndex = t.ordinal
+                        },
                         icon = {
                             if (t == MainTab.TASKS && pendingTasks > 0) {
                                 BadgedBox(badge = { Badge { Text("$pendingTasks") } }) { Text(t.icon) }

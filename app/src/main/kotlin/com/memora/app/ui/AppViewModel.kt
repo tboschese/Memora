@@ -40,6 +40,9 @@ class AppViewModel @Inject constructor(
     val onboarding = OnboardingViewModel(gate)
     val unlock = UnlockViewModel(gate)
 
+    /** Aba principal ativa; sobrevive a lock/unlock (este VM é escopado à Activity). */
+    var selectedTabIndex: Int = 0
+
     val phase: StateFlow<SessionPhase> = coordinator.phase
 
     init {
