@@ -278,9 +278,14 @@ consumo de bateria medido no device alvo.
 
 ## 12. Próximos passos imediatos
 
-1. Criar o esqueleto multi-módulo (§1) e ligar os 3 gates (§9) com o app ainda vazio.
-2. Definir as interfaces + Fakes (§2) — destrava o desenvolvimento paralelo das features.
-3. Montar `:spike` e atacar o Gate M1 no device alvo (§3).
+**Feito até aqui** (sem device, tudo testado + APK gerável): M0 + contratos; a lógica das Fases 1–4
+por trás de *seams* (fila/efemeridade/persistência cifrada, segurança com backoff, digest heurístico,
+busca, glossário, speaker enrollment/atribuição, lugares, timeline unificada, export/import Markdown);
+e o **app navegável** — onboarding de PIN → 5 abas (Hoje/Tarefas/Digest/Buscar/Ajustes) sobre o banco
+SQLCipher, usável como diário/gerenciador de tarefas local-first.
 
-> Quando quiser, eu começo pelo passo 1: gero o `settings.gradle.kts`, os convention plugins e os
-> módulos vazios já com os testes-gate falhando de propósito (INTERNET/áudio/log) para travar o baseline.
+**O que falta para fechar o M2 (MVP "o dia vira texto"):** a captura de áudio real
+(`AudioRecord` + Foreground Service) e a transcrição on-device (whisper.cpp via JNI) — trabalho de
+device/NDK que não roda em JVM. Os *seams* (`TranscriptionProvider`, `VoiceActivityDetector`,
+`CaptureController`, `EncryptedSession`) já estão prontos para receber a implementação real sem tocar
+no miolo já testado. Antes disso, o Gate M1 (§3): 8h de captura + WER do whisper no device alvo.
