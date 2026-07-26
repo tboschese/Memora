@@ -48,8 +48,18 @@ fun UnlockScreen(viewModel: UnlockViewModel) {
                 modifier = Modifier.padding(top = 16.dp),
             )
 
-            state.error?.let {
-                Text(it.message(), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+            val locked = state.lockedForMs > 0
+            when {
+                locked -> Text(
+                    "Muitas tentativas. Aguarde ~${(state.lockedForMs + 999) / 1000}s.",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                state.error != null -> Text(
+                    state.error!!.message(),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             Button(
@@ -57,7 +67,7 @@ fun UnlockScreen(viewModel: UnlockViewModel) {
                     viewModel.submit(pin.toCharArray())
                     pin = ""
                 },
-                enabled = !state.isSubmitting,
+                enabled = !state.isSubmitting && !locked,
                 modifier = Modifier.padding(top = 24.dp),
             ) {
                 Text("Entrar")
