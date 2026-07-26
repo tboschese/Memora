@@ -25,9 +25,14 @@ class HeuristicDigestProvider : DigestProvider {
         val themes = (sources.flatMap { it.tags }.filter { it !in usedTags } + input.glossaryTerms)
             .distinct()
 
+        val doneTasks = sources.count { it.done && TAG_TASK in it.tags }
         val places = sources.mapNotNull { it.place }.distinct()
         val summary = buildString {
             append(sources.size).append(" registro").append(if (sources.size == 1) "" else "s").append(" no dia")
+            if (doneTasks > 0) {
+                append(", ").append(doneTasks).append(" tarefa").append(if (doneTasks == 1) "" else "s").append(" concluída")
+                if (doneTasks > 1) append('s')
+            }
             if (places.isNotEmpty()) append(" — ").append(places.joinToString(", "))
             append('.')
         }

@@ -95,4 +95,19 @@ class HeuristicDigestProviderTest {
         val digest = provider.generate(DigestInput(epochDay = 1, sources = listOf(note("só uma"))))
         assertEquals("1 registro no dia.", digest.summary)
     }
+
+    @Test
+    fun `summary reports completed tasks`() = runTest {
+        val digest = provider.generate(
+            DigestInput(
+                epochDay = 1,
+                sources = listOf(
+                    note("feita", tags = listOf("tarefa"), done = true),
+                    note("outra", tags = listOf("tarefa"), done = true),
+                    note("nota qualquer"),
+                ),
+            ),
+        )
+        assertEquals("3 registros no dia, 2 tarefas concluídas.", digest.summary)
+    }
 }
