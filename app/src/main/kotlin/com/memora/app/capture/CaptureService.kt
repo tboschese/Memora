@@ -3,6 +3,7 @@ package com.memora.app.capture
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -30,10 +31,11 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -43,9 +45,8 @@ import javax.inject.Inject
  * [CapturePipeline] já testado (chunking → VAD → store efêmero cifrado), enfileira os chunks com
  * fala na [TranscriptionQueue] e persiste o texto no banco da sessão — o áudio é destruído logo após.
  *
- * Regra 2 (áudio efêmero): nada de PCM cru sobrevive à transcrição. Regra 4: roda em serviço próprio,
- * independente da leitura estar destrancada. A transcrição real (whisper.cpp) entra no *seam*
- * [PlaceholderTranscriptionProvider] sem tocar nesta fiação.
+ * Regra 2 (áudio efêmero): nada de PCM cru sobrevive à transcrição. Regra 4: roda em serviço próprio.
+ * A transcrição real (whisper.cpp) entra no *seam* [PlaceholderTranscriptionProvider].
  */
 @AndroidEntryPoint
 class CaptureService : Service() {
@@ -55,6 +56,9 @@ class CaptureService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
+
+    @Volatile
+    private var capturing = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -70,8 +74,10 @@ class CaptureService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (job == null) job = scope.launch { capture() }
-        recordingState.set(true)
+        if (job?.isActive != true) {
+            capturing = true
+            job = scope.launch { capture() }
+        }
         return START_STICKY
     }
 
@@ -82,7 +88,10 @@ class CaptureService : Service() {
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
         )
-        if (minBuffer <= 0) return
+        if (minBuffer <= 0) {
+            stopSelf()
+            return
+        }
         val bufferSize = minBuffer.coerceAtLeast(sampleRate) // ~0.5s
 
         val record = try {
@@ -94,10 +103,12 @@ class CaptureService : Service() {
                 bufferSize,
             )
         } catch (e: SecurityException) {
-            return // permissão de microfone não concedida
+            stopSelf() // permissão de microfone não concedida
+            return
         }
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             record.release()
+            stopSelf()
             return
         }
 
@@ -112,7 +123,9 @@ class CaptureService : Service() {
         )
         val pipeline = CapturePipeline(
             chunker = PcmChunker(sampleRate = sampleRate, targetMs = CHUNK_MS),
-            vad = EnergyVad(),
+            // Limiar de energia baixo: microfones variam muito no ganho; melhor capturar demais que
+            // engolir fala baixinha. Ajustável nos parâmetros avançados (Fase 2).
+            vad = EnergyVad(rmsThreshold = 120.0),
             store = store,
             captureStartMs = System.currentTimeMillis(),
             newChunkId = { UUID.randomUUID().toString() },
@@ -127,8 +140,9 @@ class CaptureService : Service() {
         val device = DeviceState(charging = false, idle = false)
         val buffer = ShortArray(bufferSize)
         record.startRecording()
+        recordingState.set(true)
         try {
-            while (scope.isActive) {
+            while (capturing) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read > 0) {
                     pipeline.onAudio(buffer.copyOf(read))
@@ -136,24 +150,30 @@ class CaptureService : Service() {
                 }
             }
         } finally {
-            record.stop()
-            record.release()
-            pipeline.stop()
-            queue.drain(DrainMode.CONTINUOUS, device)
+            // Cleanup CRÍTICO: transcreve e persiste o trecho final mesmo com a coroutine cancelada.
+            withContext(NonCancellable) {
+                record.stop()
+                record.release()
+                pipeline.stop()
+                queue.drain(DrainMode.CONTINUOUS, device)
+            }
+            recordingState.set(false)
         }
     }
 
     override fun onDestroy() {
-        job?.cancel()
+        capturing = false
         scope.cancel()
         recordingState.set(false)
         super.onDestroy()
     }
 
     private fun startForegroundCompat() {
-        val open = android.app.PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            android.app.PendingIntent.FLAG_IMMUTABLE,
+        val open = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE,
         )
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Memora gravando")
@@ -183,6 +203,6 @@ class CaptureService : Service() {
     private companion object {
         const val CHANNEL_ID = "memora_capture"
         const val NOTIF_ID = 1
-        const val CHUNK_MS = 5_000L // 5s: feedback rápido; a spec pede 30–60s em produção
+        const val CHUNK_MS = 4_000L // 4s: feedback rápido; a spec pede 30–60s em produção
     }
 }
