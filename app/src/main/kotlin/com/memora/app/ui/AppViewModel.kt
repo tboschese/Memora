@@ -16,9 +16,14 @@ import java.time.ZoneId
 import com.memora.app.session.SessionCoordinator
 import com.memora.app.session.SessionPhase
 import com.memora.app.data.GlossaryInjection
+import com.memora.core.common.time.DayRange
+import com.memora.core.digest.DigestInput
 import com.memora.core.digest.HeuristicDigestProvider
+import com.memora.core.digest.WeeklyDigest
+import com.memora.core.digest.WeeklyReview
 import com.memora.feature.digest.DigestViewModel
 import kotlinx.coroutines.flow.first
+import java.time.LocalDate
 import com.memora.feature.onboarding.OnboardingViewModel
 import com.memora.feature.onboarding.PinGate
 import com.memora.feature.onboarding.SetupStep
@@ -108,6 +113,22 @@ class AppViewModel @Inject constructor(
         val dao = holder.database.noteDao()
         notes.forEach { dao.upsert(it.toEntity()) }
         return notes.size
+    }
+
+    /** Gera o resumo dos últimos 7 dias, agregando um digest diário por dia com atividade. */
+    suspend fun weeklyDigest(zone: ZoneId = ZoneId.systemDefault()): WeeklyDigest {
+        val db = holder.database
+        val sources = RoomDigestSources(db.segmentDao(), db.noteDao())
+        val provider = HeuristicDigestProvider()
+        val terms = GlossaryInjection.digestTerms(RoomGlossaryRepository(db.glossaryDao()).observeAll().first())
+        val today = LocalDate.now(zone)
+        val digests = (0..6).mapNotNull { offset ->
+            val day = today.minusDays(offset.toLong())
+            val daySources = sources.forDay(DayRange.of(day, zone))
+            if (daySources.isEmpty()) null
+            else provider.generate(DigestInput(day.toEpochDay(), daySources, terms))
+        }
+        return WeeklyReview.aggregate(digests)
     }
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */

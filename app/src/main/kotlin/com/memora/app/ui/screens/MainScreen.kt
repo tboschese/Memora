@@ -118,7 +118,7 @@ fun MainScreen(appViewModel: AppViewModel) {
         when (tab) {
             MainTab.TODAY -> TodayContent(home, contentModifier)
             MainTab.TASKS -> TasksContent(tasks, contentModifier)
-            MainTab.DIGEST -> DigestContent(digest, contentModifier)
+            MainTab.DIGEST -> DigestContent(digest, onWeekly = { appViewModel.weeklyDigest() }, modifier = contentModifier)
             MainTab.SEARCH -> SearchContent(search, contentModifier)
             MainTab.SETTINGS -> SettingsContent(
                 settings,
