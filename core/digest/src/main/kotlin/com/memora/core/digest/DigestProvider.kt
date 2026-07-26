@@ -26,6 +26,8 @@ data class DigestSource(
     val place: String? = null,
     /** Tags da fonte (das anotações do usuário); vazio para falas transcritas. */
     val tags: List<String> = emptyList(),
+    /** Concluída (para tarefas). Uma tarefa feita não vira item de ação pendente. */
+    val done: Boolean = false,
 )
 
 /** Saída estruturada do digest. Cada lista é validada por schema na impl real. */

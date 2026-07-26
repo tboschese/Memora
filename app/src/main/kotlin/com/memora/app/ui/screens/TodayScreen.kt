@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -94,7 +95,12 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(items, key = { it.itemKey() }) { item ->
-                DayItemRow(item, onDelete = home::deleteNote, onEdit = { editing = it })
+                DayItemRow(
+                    item,
+                    onDelete = home::deleteNote,
+                    onEdit = { editing = it },
+                    onToggleDone = home::setDone,
+                )
             }
         }
 
@@ -170,8 +176,10 @@ private fun DayItemRow(
     item: DayItem,
     onDelete: (String) -> Unit,
     onEdit: (DayItem.UserNote) -> Unit,
+    onToggleDone: (String, Boolean) -> Unit,
 ) {
     val time = TIME.format(Instant.ofEpochMilli(item.atMs).atZone(ZoneId.systemDefault()))
+    val isTask = item is DayItem.UserNote && "tarefa" in item.tags
     val text = when (item) {
         is DayItem.Speech -> buildString {
             item.speaker?.takeIf { it != "UNKNOWN" }?.let { append("($it) ") }
@@ -185,9 +193,20 @@ private fun DayItemRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (isTask && item is DayItem.UserNote) {
+            Checkbox(checked = item.done, onCheckedChange = { onToggleDone(item.id, it) })
+        }
         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(time, style = MaterialTheme.typography.labelLarge)
-            Text(text, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                textDecoration = if (isTask && (item as DayItem.UserNote).done) {
+                    androidx.compose.ui.text.style.TextDecoration.LineThrough
+                } else {
+                    null
+                },
+            )
         }
         if (item is DayItem.UserNote) {
             TextButton(onClick = { onEdit(item) }) { Text("✎") }

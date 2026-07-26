@@ -72,6 +72,9 @@ interface NoteDao {
     @Query("SELECT * FROM note")
     suspend fun snapshotAll(): List<NoteEntity>
 
+    @Query("UPDATE note SET done = :done WHERE id = :id")
+    suspend fun setDone(id: String, done: Boolean)
+
     @Query("DELETE FROM note WHERE id = :id")
     suspend fun deleteById(id: String)
 }

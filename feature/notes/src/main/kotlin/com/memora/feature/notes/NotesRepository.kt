@@ -12,5 +12,7 @@ interface NotesRepository {
 
     suspend fun add(note: Note)
 
+    suspend fun setDone(id: String, done: Boolean)
+
     suspend fun delete(id: String)
 }

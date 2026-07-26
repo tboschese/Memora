@@ -50,6 +50,7 @@ internal fun NoteEntity.toDayItem(): DayItem.UserNote = DayItem.UserNote(
     atMs = createdAtMs,
     text = text,
     tags = if (tags.isEmpty()) emptyList() else tags.split(" ").filter { it.isNotBlank() },
+    done = done,
 )
 
 internal fun TimelineGapEntity.toDayItem(): DayItem.Gap = DayItem.Gap(

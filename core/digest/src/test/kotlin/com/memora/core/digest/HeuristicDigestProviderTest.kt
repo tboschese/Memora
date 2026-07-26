@@ -10,8 +10,22 @@ class HeuristicDigestProviderTest {
 
     private val provider = HeuristicDigestProvider()
 
-    private fun note(text: String, tags: List<String> = emptyList(), place: String? = null) =
-        DigestSource(timeMs = 0, speaker = SpeakerLabel.SELF, text = text, place = place, tags = tags)
+    private fun note(text: String, tags: List<String> = emptyList(), place: String? = null, done: Boolean = false) =
+        DigestSource(timeMs = 0, speaker = SpeakerLabel.SELF, text = text, place = place, tags = tags, done = done)
+
+    @Test
+    fun `completed tasks are not action items`() = runTest {
+        val digest = provider.generate(
+            DigestInput(
+                epochDay = 1,
+                sources = listOf(
+                    note("comprar pão", tags = listOf("tarefa"), done = true),
+                    note("ligar dentista", tags = listOf("tarefa")),
+                ),
+            ),
+        )
+        assertEquals(listOf("ligar dentista"), digest.myActionItems)
+    }
 
     @Test
     fun `empty day summarizes as no activity`() = runTest {

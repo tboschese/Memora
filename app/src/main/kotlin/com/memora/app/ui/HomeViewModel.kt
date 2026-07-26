@@ -83,6 +83,10 @@ class HomeViewModel(
         }
     }
 
+    fun setDone(id: String, done: Boolean) {
+        viewModelScope.launch { notes.setDone(id, done) }
+    }
+
     fun deleteNote(id: String) {
         viewModelScope.launch { notes.delete(id) }
     }

@@ -21,6 +21,8 @@ sealed interface DayItem {
         override val atMs: Long,
         val text: String,
         val tags: List<String> = emptyList(),
+        /** Marcada como concluída — relevante para notas de tarefa (`#tarefa`). */
+        val done: Boolean = false,
     ) : DayItem
 
     data class Gap(

@@ -18,7 +18,8 @@ class HeuristicDigestProvider : DigestProvider {
             return Digest(epochDay = input.epochDay, summary = "Sem atividade registrada.")
         }
 
-        val actionItems = sources.textsWithTag(TAG_TASK)
+        // Tarefas ainda pendentes viram itens de ação; as concluídas saem da lista.
+        val actionItems = sources.filterNot { it.done }.textsWithTag(TAG_TASK)
         val decisions = sources.textsWithAnyTag(TAG_DECISION)
         val usedTags = TAG_DECISION + TAG_TASK
         val themes = (sources.flatMap { it.tags }.filter { it !in usedTags } + input.glossaryTerms)

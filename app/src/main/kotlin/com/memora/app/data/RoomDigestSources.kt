@@ -41,4 +41,5 @@ internal fun NoteEntity.toDigestSource(): DigestSource = DigestSource(
     text = text,
     place = place,
     tags = if (tags.isEmpty()) emptyList() else tags.split(" ").filter { it.isNotBlank() },
+    done = done,
 )

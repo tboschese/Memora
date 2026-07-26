@@ -20,7 +20,11 @@ class FakeNotesRepository(
         }
 
     override suspend fun add(note: Note) {
-        store.value = store.value + note
+        store.value = store.value.filterNot { it.id == note.id } + note
+    }
+
+    override suspend fun setDone(id: String, done: Boolean) {
+        store.value = store.value.map { if (it.id == id) it.copy(done = done) else it }
     }
 
     override suspend fun delete(id: String) {

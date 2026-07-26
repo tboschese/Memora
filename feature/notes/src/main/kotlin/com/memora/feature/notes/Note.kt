@@ -12,6 +12,8 @@ data class Note(
     /** Segmento ancorado (timestamp exato), quando a nota nasceu durante a captura. */
     val segmentId: String? = null,
     val place: String? = null,
+    /** Marcada como concluída (para notas de tarefa). */
+    val done: Boolean = false,
 )
 
 /**

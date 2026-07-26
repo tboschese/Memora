@@ -74,6 +74,8 @@ data class NoteEntity(
     /** Tags rápidas serializadas (space-separated), "" quando não há. */
     val tags: String = "",
     val place: String? = null,
+    /** Marcada como concluída (para notas de tarefa). */
+    val done: Boolean = false,
 )
 
 /**

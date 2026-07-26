@@ -78,4 +78,18 @@ class RoomNotesRepositoryTest {
 
         assertTrue(repo.observeInRange(DayRange(0, 100)).first().single().tags.isEmpty())
     }
+
+    @Test
+    fun `setDone toggles completion without touching the rest`() = runBlocking {
+        val repo = RoomNotesRepository(db.noteDao())
+        repo.add(note("n1", createdAtMs = 10, tags = listOf("tarefa")))
+
+        repo.setDone("n1", true)
+        val done = repo.observeInRange(DayRange(0, 100)).first().single()
+        assertTrue(done.done)
+        assertEquals(listOf("tarefa"), done.tags) // tags preservadas
+
+        repo.setDone("n1", false)
+        assertTrue(!repo.observeInRange(DayRange(0, 100)).first().single().done)
+    }
 }

@@ -34,7 +34,7 @@ import com.memora.core.db.entity.TimelineGapEntity
         GlossaryEntity::class,
         NamedPlaceEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class MemoraDatabase : RoomDatabase() {

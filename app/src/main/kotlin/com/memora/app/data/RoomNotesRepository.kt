@@ -20,6 +20,8 @@ class RoomNotesRepository(private val dao: NoteDao) : NotesRepository {
 
     override suspend fun add(note: Note) = dao.upsert(note.toEntity())
 
+    override suspend fun setDone(id: String, done: Boolean) = dao.setDone(id, done)
+
     override suspend fun delete(id: String) = dao.deleteById(id)
 }
 
@@ -30,6 +32,7 @@ internal fun NoteEntity.toNote(): Note = Note(
     tags = tags.toTagList(),
     segmentId = segmentId,
     place = place,
+    done = done,
 )
 
 internal fun Note.toEntity(): NoteEntity = NoteEntity(
@@ -39,6 +42,7 @@ internal fun Note.toEntity(): NoteEntity = NoteEntity(
     segmentId = segmentId,
     tags = tags.joinToString(" "),
     place = place,
+    done = done,
 )
 
 private fun String.toTagList(): List<String> =
