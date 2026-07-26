@@ -55,6 +55,9 @@ class AppViewModel @Inject constructor(
     /** Aba principal ativa; sobrevive a lock/unlock (este VM é escopado à Activity). */
     var selectedTabIndex: Int = 0
 
+    /** Ajustes vigentes (para o tema, entre outros). */
+    val settings = settingsRepository.settings
+
     val phase: StateFlow<SessionPhase> = coordinator.phase
 
     init {

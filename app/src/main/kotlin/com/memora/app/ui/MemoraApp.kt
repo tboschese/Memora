@@ -1,5 +1,6 @@
 package com.memora.app.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -9,6 +10,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.memora.app.session.SessionPhase
+import com.memora.feature.settings.DarkMode
 import com.memora.app.ui.screens.MainScreen
 import com.memora.app.ui.screens.OnboardingScreen
 import com.memora.app.ui.screens.UnlockScreen
@@ -21,7 +23,13 @@ import com.memora.app.ui.theme.MemoraTheme
  */
 @Composable
 fun MemoraApp(appViewModel: AppViewModel = hiltViewModel()) {
-    MemoraTheme {
+    val settings by appViewModel.settings.collectAsState()
+    val darkTheme = when (settings.darkMode) {
+        DarkMode.SYSTEM -> isSystemInDarkTheme()
+        DarkMode.LIGHT -> false
+        DarkMode.DARK -> true
+    }
+    MemoraTheme(darkTheme = darkTheme) {
         // Auto-lock (regra 4): ao voltar do segundo plano, tranca se ficou fora além do timeout.
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.memora.feature.settings.DarkMode
 import com.memora.feature.settings.MemoraSettings
 import com.memora.feature.settings.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -70,6 +72,18 @@ fun SettingsContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Ajustes", style = MaterialTheme.typography.headlineMedium)
+
+        Text("Tema", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val labels = mapOf(DarkMode.SYSTEM to "Sistema", DarkMode.LIGHT to "Claro", DarkMode.DARK to "Escuro")
+            DarkMode.entries.forEach { mode ->
+                FilterChip(
+                    selected = settings.darkMode == mode,
+                    onClick = { viewModel.update(settings.copy(darkMode = mode)) },
+                    label = { Text(labels.getValue(mode)) },
+                )
+            }
+        }
 
         OutlinedTextField(
             value = autoLockMin,

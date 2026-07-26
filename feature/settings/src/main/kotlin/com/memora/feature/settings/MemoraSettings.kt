@@ -9,7 +9,12 @@ package com.memora.feature.settings
  * Os defaults espelham os do código (ex.: `EnergyVad`, `VoiceProfile`, `AutoLockController`,
  * `DigestScheduler`); mantidos aqui como fonte única de configuração, sem acoplar os módulos.
  */
+/** Preferência de tema da UI. */
+enum class DarkMode { SYSTEM, LIGHT, DARK }
+
 data class MemoraSettings(
+    /** Tema da interface. */
+    val darkMode: DarkMode = DarkMode.SYSTEM,
     /** Idioma forçado do Whisper; `null` = auto-detect. */
     val transcriptionLanguage: String? = null,
     /** Similaridade mínima (cosseno) para SELF. */

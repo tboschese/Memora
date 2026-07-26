@@ -1,6 +1,7 @@
 package com.memora.app.data
 
 import android.content.Context
+import com.memora.feature.settings.DarkMode
 import com.memora.feature.settings.MemoraSettings
 import com.memora.feature.settings.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,6 +31,7 @@ class PrefsSettingsRepository @Inject constructor(
         prefs.edit()
             .putLong(KEY_AUTO_LOCK, normalized.autoLockTimeoutMs)
             .putInt(KEY_DIGEST_HOUR, normalized.digestTargetHour)
+            .putInt(KEY_DARK_MODE, normalized.darkMode.ordinal)
             .apply()
         _settings.value = normalized
     }
@@ -39,6 +41,7 @@ class PrefsSettingsRepository @Inject constructor(
         return MemoraSettings(
             autoLockTimeoutMs = prefs.getLong(KEY_AUTO_LOCK, defaults.autoLockTimeoutMs),
             digestTargetHour = prefs.getInt(KEY_DIGEST_HOUR, defaults.digestTargetHour),
+            darkMode = DarkMode.entries.getOrElse(prefs.getInt(KEY_DARK_MODE, defaults.darkMode.ordinal)) { DarkMode.SYSTEM },
         ).normalized()
     }
 
@@ -46,5 +49,6 @@ class PrefsSettingsRepository @Inject constructor(
         const val PREFS = "memora_settings"
         const val KEY_AUTO_LOCK = "auto_lock_ms"
         const val KEY_DIGEST_HOUR = "digest_hour"
+        const val KEY_DARK_MODE = "dark_mode"
     }
 }
