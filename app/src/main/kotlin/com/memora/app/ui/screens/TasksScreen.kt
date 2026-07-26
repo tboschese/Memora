@@ -22,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.memora.app.ui.TasksViewModel
@@ -98,6 +100,9 @@ private fun TaskRow(task: Note, onToggle: (String, Boolean) -> Unit, onDelete: (
             WHEN.format(Instant.ofEpochMilli(task.createdAtMs).atZone(ZoneId.systemDefault())),
             style = MaterialTheme.typography.labelSmall,
         )
-        TextButton(onClick = onDelete) { Text("✕") }
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier.clearAndSetSemantics { contentDescription = "Apagar tarefa" },
+        ) { Text("✕") }
     }
 }
