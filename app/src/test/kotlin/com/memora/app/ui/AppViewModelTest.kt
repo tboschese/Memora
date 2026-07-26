@@ -52,6 +52,8 @@ class AppViewModelTest {
     private class FakeCapture : com.memora.feature.today.CaptureController {
         private val state = kotlinx.coroutines.flow.MutableStateFlow(false)
         override val isRecording = state
+        override val capturedCount = kotlinx.coroutines.flow.MutableStateFlow(0)
+        override val droppedCount = kotlinx.coroutines.flow.MutableStateFlow(0)
         override fun start() { state.value = true }
         override fun stop() { state.value = false }
     }

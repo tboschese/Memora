@@ -25,6 +25,8 @@ class FakeTodayRepository(
 class FakeCaptureController : CaptureController {
     private val _isRecording = MutableStateFlow(false)
     override val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
+    override val capturedCount: StateFlow<Int> = MutableStateFlow(0)
+    override val droppedCount: StateFlow<Int> = MutableStateFlow(0)
 
     override fun start() { _isRecording.value = true }
     override fun stop() { _isRecording.value = false }

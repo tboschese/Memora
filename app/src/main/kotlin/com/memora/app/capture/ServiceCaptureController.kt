@@ -20,6 +20,8 @@ class ServiceCaptureController @Inject constructor(
 ) : CaptureController {
 
     override val isRecording: StateFlow<Boolean> = recordingState.isRecording
+    override val capturedCount: StateFlow<Int> = recordingState.captured
+    override val droppedCount: StateFlow<Int> = recordingState.dropped
 
     override fun start() {
         ContextCompat.startForegroundService(context, Intent(context, CaptureService::class.java))

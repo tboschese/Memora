@@ -42,6 +42,8 @@ class HomeViewModel(
 
     /** `true` enquanto a captura de áudio está ativa. */
     val isRecording: StateFlow<Boolean> = capture.isRecording
+    val capturedCount: StateFlow<Int> = capture.capturedCount
+    val droppedCount: StateFlow<Int> = capture.droppedCount
 
     private val _date = MutableStateFlow(today)
     val date: StateFlow<LocalDate> = _date.asStateFlow()

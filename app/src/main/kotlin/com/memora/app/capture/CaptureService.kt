@@ -20,9 +20,9 @@ import com.memora.app.data.RoomGapSink
 import com.memora.app.data.RoomSegmentSink
 import com.memora.app.data.SessionDatabaseHolder
 import com.memora.core.audio.CapturePipeline
-import com.memora.core.audio.EnergyVad
 import com.memora.core.audio.FileEphemeralAudioStore
 import com.memora.core.audio.PcmChunker
+import com.memora.core.audio.VoiceActivityDetector
 import com.memora.core.transcription.DeviceState
 import com.memora.core.transcription.DrainMode
 import com.memora.core.transcription.PendingChunk
@@ -123,9 +123,10 @@ class CaptureService : Service() {
         )
         val pipeline = CapturePipeline(
             chunker = PcmChunker(sampleRate = sampleRate, targetMs = CHUNK_MS),
-            // Limiar de energia baixo: microfones variam muito no ganho; melhor capturar demais que
-            // engolir fala baixinha. Ajustável nos parâmetros avançados (Fase 2).
-            vad = EnergyVad(rmsThreshold = 120.0),
+            // DIAGNÓSTICO: por ora captura TUDO (inclusive silêncio), para provar o pipeline
+            // ponta-a-ponta no device. O VAD por energia (ou Silero) volta assim que confirmarmos
+            // que a fala chega à timeline.
+            vad = VoiceActivityDetector { true },
             store = store,
             captureStartMs = System.currentTimeMillis(),
             newChunkId = { UUID.randomUUID().toString() },
@@ -134,19 +135,21 @@ class CaptureService : Service() {
                 queue.enqueue(
                     PendingChunk(stored.chunkId, stored.startedAtMs, stored.durationMs, stored.sizeBytes.toLong()),
                 )
+                recordingState.onCaptured()
             },
         )
 
         val device = DeviceState(charging = false, idle = false)
         val buffer = ShortArray(bufferSize)
         record.startRecording()
-        recordingState.set(true)
+        recordingState.startSession()
         try {
             while (capturing) {
                 val read = record.read(buffer, 0, buffer.size)
                 if (read > 0) {
                     pipeline.onAudio(buffer.copyOf(read))
                     queue.drain(DrainMode.CONTINUOUS, device)
+                    recordingState.setDropped(pipeline.droppedSilenceCount)
                 }
             }
         } finally {

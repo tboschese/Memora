@@ -102,6 +102,15 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             Text(if (isRecording) "■ Parar gravação" else "● Gravar áudio")
         }
 
+        if (isRecording) {
+            val captured by home.capturedCount.collectAsState()
+            val dropped by home.droppedCount.collectAsState()
+            Text(
+                "Capturando… trechos: $captured  (descartados: $dropped)",
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
