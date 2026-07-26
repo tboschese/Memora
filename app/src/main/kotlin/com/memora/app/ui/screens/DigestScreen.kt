@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,6 +28,11 @@ import com.memora.feature.digest.DigestViewModel
 fun DigestContent(viewModel: DigestViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.uiState.collectAsState()
 
+    // Gera automaticamente na primeira abertura (heurística barata); depois fica sob demanda.
+    LaunchedEffect(Unit) {
+        if (state is DigestUiState.Idle) viewModel.generate()
+    }
+
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -34,11 +40,11 @@ fun DigestContent(viewModel: DigestViewModel, modifier: Modifier = Modifier) {
         Text("Digest do dia", style = MaterialTheme.typography.headlineMedium)
 
         Button(onClick = { viewModel.generate() }, enabled = state !is DigestUiState.Generating) {
-            Text("Gerar digest")
+            Text(if (state is DigestUiState.Idle || state is DigestUiState.Generating) "Gerar digest" else "Atualizar")
         }
 
         when (val s = state) {
-            is DigestUiState.Idle -> Text("Toque em “Gerar digest” para resumir o dia.")
+            is DigestUiState.Idle -> Text("Resumindo o dia…")
             is DigestUiState.Generating -> CircularProgressIndicator()
             is DigestUiState.Empty -> Text("Nada para resumir ainda — sem falas ou anotações hoje.")
             is DigestUiState.Failed -> Text(
