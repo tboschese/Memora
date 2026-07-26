@@ -33,8 +33,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val LONG_DATE: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("pt", "BR"))
 
 /**
  * Conteúdo da aba "Hoje": a timeline unificada do dia (por enquanto, as anotações) e um campo para
@@ -56,7 +59,10 @@ fun TodayContent(home: HomeViewModel, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(if (isToday) "Hoje" else date.toString(), style = MaterialTheme.typography.headlineMedium)
+            Text(
+                if (isToday) "Hoje" else LONG_DATE.format(date).replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.headlineMedium,
+            )
             TextButton(
                 onClick = {
                     val markdown = exportDayMarkdown(items, date, emptyList(), ZoneId.systemDefault())
