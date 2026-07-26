@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
@@ -33,18 +37,29 @@ private val WHEN: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM")
 @Composable
 fun TasksContent(viewModel: TasksViewModel, modifier: Modifier = Modifier) {
     val tasks by viewModel.tasks.collectAsState()
+    var hideDone by remember { mutableStateOf(false) }
+    val shown = if (hideDone) tasks.filterNot { it.done } else tasks
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         val pending = tasks.count { !it.done }
         Text("Tarefas", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            if (tasks.isEmpty()) "Sem tarefas. Anote com #tarefa na tela Hoje." else "$pending pendente(s).",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                if (tasks.isEmpty()) "Sem tarefas. Anote com #tarefa na tela Hoje." else "$pending pendente(s).",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            if (tasks.any { it.done }) {
+                FilterChip(selected = hideDone, onClick = { hideDone = !hideDone }, label = { Text("Ocultar concluídas") })
+            }
+        }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(tasks, key = Note::id) { task -> TaskRow(task, viewModel::setDone) }
+            items(shown, key = Note::id) { task -> TaskRow(task, viewModel::setDone) }
         }
     }
 }
