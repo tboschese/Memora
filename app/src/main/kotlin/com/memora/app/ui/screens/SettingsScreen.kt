@@ -1,5 +1,6 @@
 package com.memora.app.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,12 +18,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.memora.feature.settings.MemoraSettings
 import com.memora.feature.settings.SettingsViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Conteúdo da aba "Ajustes": edita os parâmetros que já têm efeito hoje (auto-lock, hora do digest).
@@ -33,9 +37,12 @@ import com.memora.feature.settings.SettingsViewModel
 fun SettingsContent(
     viewModel: SettingsViewModel,
     onOpenGlossary: () -> Unit,
+    onExportHistory: suspend () -> String,
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var autoLockMin by remember(settings) { mutableStateOf((settings.autoLockTimeoutMs / 60_000).toString()) }
     var digestHour by remember(settings) { mutableStateOf(settings.digestTargetHour.toString()) }
@@ -82,6 +89,23 @@ fun SettingsContent(
 
         OutlinedButton(onClick = onOpenGlossary, modifier = Modifier.fillMaxWidth()) {
             Text("Gerenciar glossário")
+        }
+
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val markdown = onExportHistory()
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/markdown"
+                        putExtra(Intent.EXTRA_TEXT, markdown)
+                        putExtra(Intent.EXTRA_TITLE, "Memora — histórico")
+                    }
+                    context.startActivity(Intent.createChooser(send, "Exportar histórico"))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Exportar todo o histórico")
         }
 
         Text(

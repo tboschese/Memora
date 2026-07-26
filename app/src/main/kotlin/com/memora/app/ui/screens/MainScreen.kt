@@ -120,7 +120,12 @@ fun MainScreen(appViewModel: AppViewModel) {
             MainTab.TASKS -> TasksContent(tasks, contentModifier)
             MainTab.DIGEST -> DigestContent(digest, contentModifier)
             MainTab.SEARCH -> SearchContent(search, contentModifier)
-            MainTab.SETTINGS -> SettingsContent(settings, onOpenGlossary = { showGlossary = true }, modifier = contentModifier)
+            MainTab.SETTINGS -> SettingsContent(
+                settings,
+                onOpenGlossary = { showGlossary = true },
+                onExportHistory = { appViewModel.exportHistory() },
+                modifier = contentModifier,
+            )
         }
     }
 }

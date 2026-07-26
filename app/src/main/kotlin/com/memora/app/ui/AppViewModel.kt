@@ -8,6 +8,9 @@ import com.memora.app.data.RoomNotesRepository
 import com.memora.app.data.RoomSearchIndex
 import com.memora.app.data.RoomUnifiedTimeline
 import com.memora.app.data.SessionDatabaseHolder
+import com.memora.app.data.exportHistoryMarkdown
+import com.memora.app.data.toNote
+import java.time.ZoneId
 import com.memora.app.session.SessionCoordinator
 import com.memora.app.session.SessionPhase
 import com.memora.core.digest.HeuristicDigestProvider
@@ -89,6 +92,10 @@ class AppViewModel @Inject constructor(
 
     /** ViewModel da visão de tarefas (todas as `#tarefa`, de qualquer dia). */
     fun createTasksViewModel(): TasksViewModel = TasksViewModel(RoomNotesRepository(holder.database.noteDao()))
+
+    /** Gera o Markdown de todo o histórico de anotações (backup). Chamado da UI numa coroutine. */
+    suspend fun exportHistory(zone: ZoneId = ZoneId.systemDefault()): String =
+        exportHistoryMarkdown(holder.database.noteDao().snapshotAll().map { it.toNote() }, zone)
 
     /** Tranca a leitura manualmente (volta à tela de desbloqueio). A captura seguiria em background. */
     fun lock() = coordinator.lock()
