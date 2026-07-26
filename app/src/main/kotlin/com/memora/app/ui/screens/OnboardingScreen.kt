@@ -44,9 +44,18 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
         ) {
             Text("Memora", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "O PIN protege a leitura do seu dia. A captura roda em segundo plano.",
+                "Seu dia em texto e conhecimento — 100% offline, cifrado no aparelho.",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (state.step == SetupStep.CREATE) {
+                Text(
+                    "• Nada sai do aparelho — sem nuvem, sem rede.\n" +
+                        "• Só texto é guardado, cifrado com o seu PIN.\n" +
+                        "• O PIN protege a leitura; nunca é armazenado.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 24.dp))
 
             OutlinedTextField(
