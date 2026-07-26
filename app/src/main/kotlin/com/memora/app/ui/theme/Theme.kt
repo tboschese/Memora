@@ -8,10 +8,25 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColors = darkColorScheme()
-private val LightColors = lightColorScheme()
+// Marca Memora: um índigo sóbrio (memória/conhecimento), usado quando o Material You não se aplica.
+private val Indigo = Color(0xFF4C5BD4)
+private val IndigoLight = Color(0xFFBEC5FF)
+private val Teal = Color(0xFF2E7D6F)
+
+private val LightColors = lightColorScheme(
+    primary = Indigo,
+    secondary = Teal,
+    tertiary = Teal,
+)
+
+private val DarkColors = darkColorScheme(
+    primary = IndigoLight,
+    secondary = Color(0xFF7FD8C8),
+    tertiary = Color(0xFF7FD8C8),
+)
 
 @Composable
 fun MemoraTheme(
