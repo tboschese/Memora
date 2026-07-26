@@ -2,6 +2,7 @@ package com.memora.app.data
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.memora.feature.settings.DarkMode
 import com.memora.feature.settings.MemoraSettings
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -26,12 +27,13 @@ class PrefsSettingsRepositoryTest {
     @Test
     fun `update persists and survives a new instance`() {
         PrefsSettingsRepository(context).update(
-            MemoraSettings(autoLockTimeoutMs = 300_000L, digestTargetHour = 20),
+            MemoraSettings(autoLockTimeoutMs = 300_000L, digestTargetHour = 20, darkMode = DarkMode.DARK),
         )
 
         val reloaded = PrefsSettingsRepository(context)
         assertEquals(300_000L, reloaded.settings.value.autoLockTimeoutMs)
         assertEquals(20, reloaded.settings.value.digestTargetHour)
+        assertEquals(DarkMode.DARK, reloaded.settings.value.darkMode)
     }
 
     @Test
