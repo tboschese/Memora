@@ -1,6 +1,8 @@
 package com.memora.app.ui.screens
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -9,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +66,9 @@ fun MainScreen(appViewModel: AppViewModel) {
         factory = viewModelFactory { initializer { appViewModel.createTasksViewModel() } },
     )
 
+    val allTasks by tasks.tasks.collectAsState()
+    val pendingTasks = allTasks.count { !it.done }
+
     var tab by remember { mutableStateOf(MainTab.TODAY) }
     var showGlossary by remember { mutableStateOf(false) }
 
@@ -90,7 +96,13 @@ fun MainScreen(appViewModel: AppViewModel) {
                     NavigationBarItem(
                         selected = tab == t,
                         onClick = { tab = t },
-                        icon = { Text(t.icon) },
+                        icon = {
+                            if (t == MainTab.TASKS && pendingTasks > 0) {
+                                BadgedBox(badge = { Badge { Text("$pendingTasks") } }) { Text(t.icon) }
+                            } else {
+                                Text(t.icon)
+                            }
+                        },
                         label = { Text(t.label) },
                     )
                 }
