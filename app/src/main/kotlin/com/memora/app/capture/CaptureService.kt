@@ -26,6 +26,8 @@ import com.memora.core.audio.VoiceActivityDetector
 import com.memora.core.transcription.DeviceState
 import com.memora.core.transcription.DrainMode
 import com.memora.core.transcription.PendingChunk
+import com.memora.core.transcription.TranscriptResult
+import com.memora.core.transcription.TranscriptSegment
 import com.memora.core.transcription.TranscriptionQueue
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +84,22 @@ class CaptureService : Service() {
     }
 
     private suspend fun capture() {
+        // DIAGNÓSTICO: marca o banco assim que o serviço roda, ANTES do microfone. Se este item
+        // aparecer na timeline, então serviço + sessão + escrita + atualização de tela estão OK, e
+        // o que resta a investigar é só o AudioRecord.
+        runCatching {
+            val now = System.currentTimeMillis()
+            RoomSegmentSink(holder.database.segmentDao()).persist(
+                TranscriptResult(
+                    chunkId = "diag-$now",
+                    language = "pt",
+                    segments = listOf(
+                        TranscriptSegment("🔧 captura iniciada — aguardando áudio", now, now, 1f),
+                    ),
+                ),
+            )
+        }
+
         val sampleRate = 16_000
         val minBuffer = AudioRecord.getMinBufferSize(
             sampleRate,
