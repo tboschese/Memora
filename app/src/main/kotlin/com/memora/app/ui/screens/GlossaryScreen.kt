@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.memora.app.ui.GlossaryViewModel
 import com.memora.core.glossary.GlossaryEntry
@@ -100,6 +102,9 @@ private fun GlossaryRow(entry: GlossaryEntry, onDelete: (String) -> Unit) {
                 Text(entry.variants.joinToString(", "), style = MaterialTheme.typography.bodySmall)
             }
         }
-        TextButton(onClick = { onDelete(entry.id) }) { Text("✕") }
+        TextButton(
+            onClick = { onDelete(entry.id) },
+            modifier = Modifier.clearAndSetSemantics { contentDescription = "Remover termo" },
+        ) { Text("✕") }
     }
 }
