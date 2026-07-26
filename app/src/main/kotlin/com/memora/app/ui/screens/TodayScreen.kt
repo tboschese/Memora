@@ -25,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.memora.app.data.exportDayMarkdown
 import com.memora.app.ui.HomeViewModel
@@ -231,8 +233,14 @@ private fun DayItemRow(
             )
         }
         if (item is DayItem.UserNote) {
-            TextButton(onClick = { onEdit(item) }) { Text("✎") }
-            TextButton(onClick = { onDelete(item) }) { Text("✕") }
+            TextButton(
+                onClick = { onEdit(item) },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = "Editar anotação" },
+            ) { Text("✎") }
+            TextButton(
+                onClick = { onDelete(item) },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = "Apagar anotação" },
+            ) { Text("✕") }
         }
     }
 }
