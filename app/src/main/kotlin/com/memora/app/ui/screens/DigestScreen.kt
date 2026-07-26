@@ -41,6 +41,7 @@ fun DigestContent(
     val state by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     var weekly by remember { mutableStateOf<WeeklyDigest?>(null) }
+    var weeklyLoading by remember { mutableStateOf(false) }
 
     // Gera automaticamente na primeira abertura (heurística barata); depois fica sob demanda.
     LaunchedEffect(Unit) {
@@ -57,11 +58,21 @@ fun DigestContent(
             Button(onClick = { viewModel.generate() }, enabled = state !is DigestUiState.Generating) {
                 Text(if (state is DigestUiState.Idle || state is DigestUiState.Generating) "Gerar digest" else "Atualizar")
             }
-            OutlinedButton(onClick = { scope.launch { weekly = onWeekly() } }) {
+            OutlinedButton(
+                enabled = !weeklyLoading,
+                onClick = {
+                    scope.launch {
+                        weeklyLoading = true
+                        weekly = runCatching { onWeekly() }.getOrNull()
+                        weeklyLoading = false
+                    }
+                },
+            ) {
                 Text("Resumo da semana")
             }
         }
 
+        if (weeklyLoading) CircularProgressIndicator()
         weekly?.let { WeeklyBody(it) }
 
         when (val s = state) {
